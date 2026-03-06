@@ -129,7 +129,7 @@ fgda_filters <- function(cov_matrices, labels, epsilon = 1e-6) {
   mu_w <- trSw / nfeats
   Sigma_w <- (1 - 1 / ntrials) * Sigma_w
   diag(Sigma_w) <- diag(Sigma_w) + (1 / ntrials) * mu_w
-  eig <- geigen(Sigma_b, Sigma_w, TRUE)
+  eig <- geigen::geigen(Sigma_b, Sigma_w, TRUE)
   ncomps <- min(nclass - 1, nfeats)
   keep <- head(order(eig$values, decreasing = TRUE), ncomps)
   Wtilde <- eig$vectors[, keep, drop = FALSE]
@@ -183,7 +183,7 @@ geodesic_filtering <- function(P_x, P_omega, W_tilde, epsilon = 1e-6) {
 #' @return Scalar geodesic distance.
 #' @export
 riemannian_distance <- function(A, B) {
-	vals <- geigen(A, B, TRUE, TRUE)$values
+	vals <- geigen::geigen(A, B, TRUE, TRUE)$values
 	sqrt(sum(log(vals[vals > 0])^2))
 }
 

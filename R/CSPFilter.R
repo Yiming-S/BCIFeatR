@@ -62,8 +62,8 @@ multiclass_csp <- function(x, labels,
     cov2 <- calc_mean(idx2)
     # Solve generalized eigenproblem to maximize variance contrast between classes.
     geig <- tryCatch(
-      geigen(cov1, cov2, symmetric = TRUE),
-      error = function(e) geigen(cov1, cov2, FALSE)
+      geigen::geigen(cov1, cov2, symmetric = TRUE),
+      error = function(e) geigen::geigen(cov1, cov2, FALSE)
     )
     abs_vals <- pmax(abs(geig$values), 1e-12)
     vals <- pmax(abs_vals, 1 / abs_vals)

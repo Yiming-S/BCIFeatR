@@ -34,8 +34,11 @@ experimentation.
 ## Installation
 
 ```r
+# Install dependencies first (especially when installing from local/source tarballs)
+install.packages(c("geigen", "gsignal"))
+
 # Install from GitHub (requires devtools or remotes)
-remotes::install_github("Yiming-S/BCIFeatR")
+remotes::install_github("Yiming-S/BCIFeatR", dependencies = TRUE)
 ```
 
 ## Quick start

@@ -51,6 +51,29 @@
          stop("`cov_type` must be 'oas' or 'lw'."))
 }
 
+.required_runtime_pkgs <- c("geigen", "gsignal")
+
+#' Ensure required runtime dependencies are available.
+#'
+#' @return Invisibly returns TRUE or raises an error with install instructions.
+.assert_runtime_dependencies <- function() {
+  missing <- .required_runtime_pkgs[
+    !vapply(.required_runtime_pkgs, requireNamespace, logical(1), quietly = TRUE)
+  ]
+  if (length(missing) > 0L) {
+    quoted <- paste(sprintf('"%s"', missing), collapse = ", ")
+    stop(
+      sprintf(
+        "Missing required package(s): %s. Install with install.packages(c(%s)).",
+        paste(missing, collapse = ", "),
+        quoted
+      ),
+      call. = FALSE
+    )
+  }
+  invisible(TRUE)
+}
+
 .is_positive_intish_scalar <- function(x) {
   is.numeric(x) && length(x) == 1L && is.finite(x) && x > 0 && (as.integer(x) == x)
 }
@@ -373,6 +396,7 @@
 featEx4Train <- function(x, y, feature,
                          params = list(), epsilon = 1e-6, simplify = TRUE) {
 
+  .assert_runtime_dependencies()
   valid_features <- c("logvar", "logvar_pca", "CSP", "FBCSP", "FBCSSP",
                       "TS", "ACM_TS", "Riemannian", "ATM")
   feature <- match.arg(feature, valid_features)
@@ -555,6 +579,7 @@ featEx4Test <- function(x, object,
                                     "TS", "ACM_TS", "Riemannian", "ATM"),
                         epsilon = 1e-6) {
 
+  .assert_runtime_dependencies()
   if (!is.list(x)) x <- list(x)
   feature <- match.arg(feature)
   .validate_test_contract(x, object, feature)
