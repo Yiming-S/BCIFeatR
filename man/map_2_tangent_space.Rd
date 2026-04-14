@@ -4,7 +4,12 @@
 \alias{map_2_tangent_space}
 \title{Map SPD matrices to upper-triangular tangent-space vectors.}
 \usage{
-map_2_tangent_space(cov_matrices, epsilon = 1e-12, P_omega = NULL)
+map_2_tangent_space(
+  cov_matrices,
+  epsilon = 1e-12,
+  P_omega = NULL,
+  metric = c("euclid", "logeuclid", "riemann")
+)
 }
 \arguments{
 \item{cov_matrices}{List of SPD matrices.}
@@ -12,6 +17,11 @@ map_2_tangent_space(cov_matrices, epsilon = 1e-12, P_omega = NULL)
 \item{epsilon}{Eigenvalue floor.}
 
 \item{P_omega}{Optional manifold reference; if NULL it is estimated from data.}
+
+\item{metric}{Mean metric passed to \code{riemannian_mean()} when \code{P_omega} is NULL.
+Defaults to \code{"euclid"} (arithmetic mean), which is substantially faster
+than the affine-invariant Fréchet mean with negligible accuracy loss for
+tangent-space classification. See \code{riemannian_mean()} for alternatives.}
 }
 \value{
 List with tangent coordinates \code{S} (d x n) and reference \code{P_omega}.

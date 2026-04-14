@@ -30,12 +30,21 @@ compute_ACM <- function(x, order = 2, delay = 1, shrinkage = c("no", "LW", "oas"
 			augx <- xi
 		} else {
 			nsamp <- nrow(xi)
-			nchan <- ncol(xi)
 			eff_len <- nsamp - (order - 1L) * delay
-			if (eff_len < 2L)
-				stop(sprintf("Insufficient time points (%d) for order=%d, delay=%d", nsamp, order, delay))
-			idx <- lapply(1:order, function(o) seq(1+(o-1)*delay, nsamp - (order-o)*delay))
-			augx <- matrix(xi[unlist(idx),], eff_len, nchan * order)
+			if (eff_len < 2L) {
+				stop(sprintf(
+					"Insufficient time points (%d) for order=%d, delay=%d",
+					nsamp, order, delay
+				))
+			}
+			# `do.call(cbind, ...)` preserves matrix shape when nchan == 1,
+			# unlike the prior `unlist + matrix` path which silently dropped
+			# dimensions and reshaped across columns.
+			blocks <- lapply(seq_len(order), function(o) {
+				rows <- seq(1L + (o - 1L) * delay, nsamp - (order - o) * delay)
+				xi[rows, , drop = FALSE]
+			})
+			augx <- do.call(cbind, blocks)
 		}
 		acm[[i]] <- cov_fun(augx)
 	}

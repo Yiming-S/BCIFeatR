@@ -10,7 +10,8 @@ multiclass_csp(
   ncomps = 6,
   mean_type = "euclidean",
   max_iterations = 100,
-  epsilon = 1e-06
+  epsilon = 1e-06,
+  metric = c("euclid", "logeuclid", "riemann")
 )
 }
 \arguments{
@@ -25,9 +26,13 @@ multiclass_csp(
 \item{max_iterations}{Maximum iterations for Riemannian mean.}
 
 \item{epsilon}{Numerical floor for Riemannian computations.}
+
+\item{metric}{Mean metric used when \code{mean_type = "riemannian"}; forwarded to
+\code{riemannian_mean()}. Defaults to \code{"euclid"} for speed.}
 }
 \value{
-List with flattened \code{filter}, projected \code{pattern}, eigen \code{var_ratio}, and class \code{pairs}.
+List with flattened \code{filter}, projected \code{pattern}, eigen \code{var_ratio},
+and class \code{pairs}.
 }
 \description{
 Train one-vs-one multiclass CSP filters.

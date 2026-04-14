@@ -2,24 +2,34 @@
 # Scope: Applies Butterworth filter banks and estimates discriminative
 # pass bands from PSD-label correlations.
 
+#' Build a Butterworth filter bank once for reuse across trials.
+#'
+#' @param fs Sampling rate in Hz.
+#' @param bands List of pass bands, each as `c(low, high)` in Hz.
+#' @param order Filter order.
+#' @return List of filter design objects from `gsignal::butter`.
+#' @export
+build_bandpass_bank <- function(fs, bands, order = 3) {
+  lapply(bands,
+         function(band) gsignal::butter(order, band / (fs / 2), type = "pass"))
+}
+
 #' Apply a Butterworth filter bank to one trial matrix.
 #'
 #' @param eeg Trial matrix (`samples x channels`).
 #' @param fs Sampling rate in Hz.
 #' @param order Filter order.
 #' @param bands List of pass bands, each as `c(low, high)` in Hz.
+#' @param filters Optional pre-built filter bank from `build_bandpass_bank()`;
+#'   when supplied, `fs`, `order`, and `bands` are ignored. Use this to avoid
+#'   redesigning identical filters once per trial in filter-bank pipelines.
 #' @return List of filtered trial matrices, one per band.
 #' @export
 freqBank <- function(eeg, fs, order = 3,
-                     bands = list(c(8, 13), c(13, 18), c(18, 23), c(23, 28))) 
-{	
-  band_filters <- lapply(
-    bands,
-    function(band) gsignal::butter(order, band / (fs / 2), type = "pass")
-  )
-  filtered_eeg <- lapply(band_filters, gsignal::filtfilt, x = eeg)
-  
-  return(filtered_eeg)
+                     bands = list(c(8, 13), c(13, 18), c(18, 23), c(23, 28)),
+                     filters = NULL) {
+  if (is.null(filters)) filters <- build_bandpass_bank(fs, bands, order)
+  lapply(filters, gsignal::filtfilt, x = eeg)
 }
 
 #' Select an informative frequency range from PSD-label association.

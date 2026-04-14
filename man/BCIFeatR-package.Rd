@@ -9,7 +9,7 @@
 A comprehensive feature extraction library for EEG-based brain-computer interfaces. Implements Common Spatial Patterns (CSP, FBCSP, FBCSSP), Riemannian geometry on SPD manifolds (tangent space, geodesic filtering, FGDA), Augmented Covariance Matrices (ACM), Avalanche Transition Matrices (ATM), log-variance features, and lightweight classifiers. Provides a unified train/test dispatcher with preprocessing, input validation, and metadata tracking.
 }
 \author{
-\strong{Maintainer}: Yiming Zhang \email{yiming@example.com}
+\strong{Maintainer}: Yiming Shen \email{yiming.shen001@umb.edu}
 
 }
 \keyword{internal}

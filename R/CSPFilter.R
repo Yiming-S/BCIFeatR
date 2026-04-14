@@ -11,13 +11,18 @@
 #' @param mean_type Class covariance mean type: `euclidean` or `riemannian`.
 #' @param max_iterations Maximum iterations for Riemannian mean.
 #' @param epsilon Numerical floor for Riemannian computations.
-#' @return List with flattened `filter`, projected `pattern`, eigen `var_ratio`, and class `pairs`.
+#' @param metric Mean metric used when `mean_type = "riemannian"`; forwarded to
+#'   `riemannian_mean()`. Defaults to `"euclid"` for speed.
+#' @return List with flattened `filter`, projected `pattern`, eigen `var_ratio`,
+#'   and class `pairs`.
 #' @export
 multiclass_csp <- function(x, labels,
                            ncomps = 6,
                            mean_type = "euclidean",
                            max_iterations = 100,
-                           epsilon = 1e-6) {
+                           epsilon = 1e-6,
+                           metric = c("euclid", "logeuclid", "riemann")) {
+  metric <- match.arg(metric)
   stopifnot(is.list(x))
   stopifnot(length(x) == length(labels))
   labels <- as.integer(factor(labels))
@@ -36,8 +41,9 @@ multiclass_csp <- function(x, labels,
       riemannian_mean(
         array(unlist(cov_matrices),
               dim = c(nchans, nchans, length(cov_matrices))),
-        max_iterations,
-        epsilon
+        max_iterations = max_iterations,
+        epsilon = epsilon,
+        metric = metric
       )
     } else if (mean_type == "euclidean") {
       sum_matrix <- matrix(0, nchans, nchans)
@@ -53,6 +59,10 @@ multiclass_csp <- function(x, labels,
   npairs <- ncol(pairs)
   spatial_filters <- array(dim = c(nchans, ncomps, npairs))
   var_ratio <- matrix(NA, ncomps, npairs)
+  # Solve each OvO generalized eigenproblem via Cholesky whitening of cov2:
+  # cov1 v = lambda cov2 v   ⇔   (U')^{-1} cov1 U^{-1} w = lambda w, v = U^{-1} w
+  # where U is upper-tri with U'U = cov2. Avoids geigen() which is notably
+  # slower on moderate p and drags in a heavy dependency on the CSP hot path.
   for (k in 1:npairs) {
     i1 <- pairs[1, k]
     i2 <- pairs[2, k]
@@ -60,16 +70,23 @@ multiclass_csp <- function(x, labels,
     idx2 <- which(labels == i2)
     cov1 <- calc_mean(idx1)
     cov2 <- calc_mean(idx2)
-    # Solve generalized eigenproblem to maximize variance contrast between classes.
-    geig <- tryCatch(
-      geigen::geigen(cov1, cov2, symmetric = TRUE),
-      error = function(e) geigen::geigen(cov1, cov2, FALSE)
-    )
-    abs_vals <- pmax(abs(geig$values), 1e-12)
-    vals <- pmax(abs_vals, 1 / abs_vals)
-    idx <- order(vals, decreasing = TRUE)[1:ncomps]
-    spatial_filters[, , k] <- geig$vectors[, idx]
-    var_ratio[, k] <- geig$values[idx]
+    C1 <- (cov1 + t(cov1)) / 2
+    C2 <- (cov2 + t(cov2)) / 2
+    U <- tryCatch(chol(C2), error = function(e) {
+      diag(C2) <- diag(C2) + epsilon * max(1, mean(diag(C2)))
+      chol(C2)
+    })
+    invU <- backsolve(U, diag(nrow(U)))
+    M <- crossprod(invU, C1) %*% invU
+    M <- (M + t(M)) / 2
+    eig <- eigen(M, symmetric = TRUE)
+    vals <- eig$values
+    # Rank by deviation from 1 (discriminative contrast), matching original logic.
+    abs_vals <- pmax(abs(vals), 1e-12)
+    ordv <- pmax(abs_vals, 1 / abs_vals)
+    idx <- order(ordv, decreasing = TRUE)[seq_len(ncomps)]
+    spatial_filters[, , k] <- invU %*% eig$vectors[, idx, drop = FALSE]
+    var_ratio[, k] <- vals[idx]
   }
   # Concatenate pair-specific filters into a single projection matrix.
   spatial_filters <- aperm(spatial_filters, c(1, 3, 2))
@@ -104,8 +121,7 @@ apply_csp_filters <- function(data, filters) {
 extract_logvar_features <- function(filtered_data) {
   features <- lapply(filtered_data, function(trial_matrix) {
     if (is.complex(trial_matrix)) trial_matrix <- Mod(trial_matrix)
-    vars <- apply(trial_matrix, 2, var)
-    log(pmax(vars, 1e-16))
+    log(pmax(.col_vars(trial_matrix), 1e-16))
   })
   do.call(rbind, features)
 }
@@ -121,32 +137,32 @@ extract_logvar_features <- function(filtered_data) {
 #' @param ncomps Components per stage.
 #' @return List with projected training patterns and trained filters.
 #' @export
-prepare_csp_filters <- function(data_train, labels_train, 
-                                fs, channels, csp_type, 
-                                frequency_bands= list(c(8, 30),c(11, 20), 
-                                                      c(21, 30), c(31, 40)),
-                                ncomps = c(3, 3)) { 
-  FBCSP_result <- FBCSP(data_list = data_train,
-                        labels = labels_train,
-                        fs = fs,
-                        frequency_bands = frequency_bands,
-                        channels = channels,
-                        ncomps = ncomps)
-  if (csp_type == "FBCSSP") {
-    ncomps1 <- ncomps
-    ncomps2 <- ncomps
-    FBCSSP_result <- FBCSSP(FBCSP_result,
-                            labels_train,
-                            fs = fs,
-                            frequency_bands = frequency_bands,
-                            channels = channels,
-                            ncomps1 = ncomps1,
-                            ncomps2 = ncomps2)
-    return(list(pattern = FBCSSP_result$pattern, 
-                filter = FBCSSP_result$filter, 
-                filter2 = FBCSSP_result$filter2))
-  } else if (csp_type == "FBCSP") {
-    return(list(pattern = FBCSP_result$pattern, filter = FBCSP_result$filter))
+prepare_csp_filters <- function(data_train, labels_train,
+                                fs, channels, csp_type,
+                                frequency_bands = list(c(8, 30), c(11, 20),
+                                                       c(21, 30), c(31, 40)),
+                                ncomps = c(3, 3)) {
+  # Stage-1 FBCSP is needed in both paths; FBCSSP consumes its output directly
+  # (its stage-detection branch reuses the stage-1 result without recomputing).
+  stage1 <- FBCSP(data_list = data_train,
+                  labels = labels_train,
+                  fs = fs,
+                  frequency_bands = frequency_bands,
+                  channels = channels,
+                  ncomps = ncomps)
+  if (csp_type == "FBCSP") {
+    list(pattern = stage1$pattern, filter = stage1$filter)
+  } else if (csp_type == "FBCSSP") {
+    stage2 <- FBCSSP(stage1,
+                     labels_train,
+                     fs = fs,
+                     frequency_bands = frequency_bands,
+                     channels = channels,
+                     ncomps1 = ncomps,
+                     ncomps2 = ncomps)
+    list(pattern = stage2$pattern,
+         filter  = stage2$filter,
+         filter2 = stage2$filter2)
   } else {
     stop("Invalid csp_type. Choose either 'FBCSP' or 'FBCSSP'.")
   }
@@ -172,7 +188,16 @@ FBCSP <- function(data_list, labels, fs,
   if (!is.null(channels) && !setequal(channels, 1:nchannels)) {
     data_list <- lapply(data_list, function(x) x[, channels, drop = FALSE])
   }
-  filtered_data_list <- lapply(data_list, freqBank, fs = fs, bands = frequency_bands)
+  # Design Butterworth band filters once and reuse them across all trials; the
+  # coefficients depend only on (fs, order, band), so the previous per-trial
+  # design inside `freqBank` was pure overhead on the FBCSP hot path.
+  band_filters <- lapply(
+    frequency_bands,
+    function(band) gsignal::butter(3, band / (fs / 2), type = "pass")
+  )
+  filtered_data_list <- lapply(data_list, function(trial) {
+    lapply(band_filters, gsignal::filtfilt, x = trial)
+  })
   filtered_data_list <- unlist(filtered_data_list, recursive = FALSE)
   dim(filtered_data_list) <- c(nbands, ntrials)
   spatial_filter <- feature <- var_ratio <- vector("list", nbands)

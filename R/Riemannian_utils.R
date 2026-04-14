@@ -271,10 +271,27 @@ map_2_tangent_space <- function(cov_matrices, epsilon = 1e-12, P_omega = NULL,
   ij <- ij_all[order(ij_all[, "row"], ij_all[, "col"]), , drop = FALSE]
   diag_pos <- which(ij[, "row"] == ij[, "col"])
 
+  # Batched two-sided whitening: compute W_i = inv_sqrt %*% C_i %*% inv_sqrt
+  # across all trials using two large GEMM calls, then eigen-decompose each
+  # whitened slice individually. This collapses 2 x n_trials small GEMMs
+  # into 2 large ones, which BLAS handles much faster on ACM-sized matrices.
+  inv_sqrt <- Pstr$inv_sqrt
+  C_arr <- simplify2array(cov_matrices)
+  C_left <- inv_sqrt %*% matrix(C_arr, p, p * n_trials)       # (p, p*n)
+  C_left_arr <- array(C_left, c(p, p, n_trials))
+  # Right multiply by inv_sqrt: reshape so each trial's rows become columns,
+  # then another single GEMM completes the two-sided whitening.
+  C_left_perm <- aperm(C_left_arr, c(2, 1, 3))                # (p, p, n)
+  rhs_mat <- inv_sqrt %*% matrix(C_left_perm, p, p * n_trials)
+  W_arr <- aperm(array(rhs_mat, c(p, p, n_trials)), c(2, 1, 3))
+
   S <- matrix(NA_real_, nrow = d, ncol = n_trials)
   for (i in seq_len(n_trials)) {
-    L <- log_map(Pstr, cov_matrices[[i]], eps = epsilon)
-    vec <- L[ij]
+    Wi <- (W_arr[, , i] + t(W_arr[, , i])) / 2
+    eigW <- eigen(Wi, symmetric = TRUE)
+    lam  <- log(pmax(eigW$values, epsilon))
+    L    <- eigW$vectors %*% (t(eigW$vectors) * lam)
+    vec  <- L[ij]
     # Off-diagonal coordinates are scaled by sqrt(2) under Frobenius inner product.
     vec[-diag_pos] <- vec[-diag_pos] * sqrt(2)
     S[, i] <- vec

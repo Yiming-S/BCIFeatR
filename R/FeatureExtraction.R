@@ -391,6 +391,29 @@
   )
 }
 
+#' Attach preprocessor and metadata to a feature-extraction object uniformly.
+#'
+#' Keeps every feature branch in `featEx4Train` consistent so new branches
+#' cannot accidentally ship without `$preprocess` or `$metadata`.
+#'
+#' @param obj Branch-specific train-time object.
+#' @param feature Feature name (passes through to metadata).
+#' @param feats Feature matrix (only shape is used).
+#' @param preproc_obj Fitted preprocessor from `.fit_trial_preprocessor()`.
+#' @param params Parameter list as received by the branch.
+#' @return Augmented object with `$preprocess` and `$metadata`.
+#' @keywords internal
+.finalize_obj <- function(obj, feature, feats, preproc_obj, params) {
+  obj$preprocess <- preproc_obj
+  obj$metadata <- .build_metadata(
+    feature = feature,
+    feats = feats,
+    preprocess_method = preproc_obj$method,
+    params = params
+  )
+  obj
+}
+
 
 #' Train feature extractors and compute feature matrix.
 #'
@@ -579,13 +602,7 @@ featEx4Train <- function(x, y, feature,
       stop("Unsupported feature.")
     }
 
-    obj$preprocess <- preproc_obj
-    obj$metadata <- .build_metadata(
-      feature = feature,
-      feats = feats,
-      preprocess_method = preproc_obj$method,
-      params = params
-    )
+    obj <- .finalize_obj(obj, feature, feats, preproc_obj, params)
     result[[i]] <- list(features = feats, object = obj)
   }
 

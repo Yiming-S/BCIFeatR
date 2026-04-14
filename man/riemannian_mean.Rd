@@ -2,20 +2,29 @@
 % Please edit documentation in R/Riemannian_utils.R
 \name{riemannian_mean}
 \alias{riemannian_mean}
-\title{Compute the affine-invariant Riemannian mean of SPD matrices.}
+\title{Compute a mean of SPD matrices under a chosen Riemannian metric.}
 \usage{
-riemannian_mean(cov_matrices, max_iterations = 500, epsilon = 1e-05)
+riemannian_mean(
+  cov_matrices,
+  max_iterations = 30,
+  epsilon = 1e-05,
+  metric = c("euclid", "logeuclid", "riemann")
+)
 }
 \arguments{
 \item{cov_matrices}{3D array (p x p x n) or list of SPD matrices.}
 
-\item{max_iterations}{Maximum number of fixed-point updates.}
+\item{max_iterations}{Maximum number of fixed-point updates (affine-invariant only).}
 
 \item{epsilon}{Convergence threshold and eigenvalue floor in log-domain steps.}
+
+\item{metric}{One of \code{"euclid"} (arithmetic mean, fastest — default),
+\code{"logeuclid"} (matrix-log arithmetic mean, closed form), or
+\code{"riemann"} (affine-invariant Fréchet mean, iterative).}
 }
 \value{
 SPD matrix representing the manifold mean.
 }
 \description{
-Compute the affine-invariant Riemannian mean of SPD matrices.
+Compute a mean of SPD matrices under a chosen Riemannian metric.
 }

@@ -4,12 +4,14 @@
 \alias{riemannian_distance}
 \title{Compute affine-invariant Riemannian distance between two SPD matrices.}
 \usage{
-riemannian_distance(A, B)
+riemannian_distance(A, B, eps = 1e-12)
 }
 \arguments{
 \item{A}{First SPD matrix.}
 
 \item{B}{Second SPD matrix.}
+
+\item{eps}{Eigenvalue floor for numerical stability.}
 }
 \value{
 Scalar geodesic distance.
