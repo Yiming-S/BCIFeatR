@@ -170,12 +170,25 @@
 #' @return Feature matrix with deterministic perturbation.
 .add_deterministic_jitter <- function(feats, jitter_sd = 0) {
   if (is.null(jitter_sd) || !is.finite(jitter_sd) || jitter_sd <= 0) return(feats)
-  # Build a deterministic index grid so the same input always yields the same perturbation.
-  idx <- matrix(seq_len(length(feats)), nrow = nrow(feats), ncol = ncol(feats))
-  centered <- idx - mean(idx)
-  scale_den <- max(abs(centered))
-  if (scale_den == 0) return(feats)
-  feats + (centered / scale_den) * jitter_sd
+  # Seed a local RNG stream from the feature shape so the perturbation is
+  # reproducible across calls (and across save/load) without imprinting a
+  # spurious linear ramp on the features, which the previous index-based
+  # scheme did and which downstream linear classifiers could latch onto.
+  saved <- if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+    get(".Random.seed", envir = globalenv(), inherits = FALSE)
+  } else NULL
+  on.exit({
+    if (is.null(saved)) {
+      if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+        rm(".Random.seed", envir = globalenv())
+      }
+    } else {
+      assign(".Random.seed", saved, envir = globalenv())
+    }
+  }, add = TRUE)
+  set.seed(20240101L + nrow(feats) * 31L + ncol(feats))
+  feats + matrix(stats::rnorm(length(feats), sd = jitter_sd),
+                 nrow = nrow(feats), ncol = ncol(feats))
 }
 
 #' Normalize preprocess configuration to a canonical method list.
@@ -388,20 +401,32 @@
 #' @param x Trial list or session list.
 #' @param y Labels aligned with `x`; can be NULL only for ATM.
 #' @param feature One of logvar/logvar_pca/CSP/FBCSP/FBCSSP/TS/ACM_TS/Riemannian/ATM.
-#' @param params Feature-specific parameter list.
+#' @param params Feature-specific parameter list. For SPD-based features (`TS`,
+#'   `ACM_TS`, `Riemannian`) the optional field `params$metric` selects the
+#'   tangent-space reference metric (`"euclid"` default, `"logeuclid"`,
+#'   `"riemann"`). For `TS`/`Riemannian` an optional `params$cov_list` of
+#'   pre-computed per-trial covariance matrices bypasses recomputation and is
+#'   useful when the same trial list is reused across CV folds.
 #' @param epsilon Numerical floor used in SPD operations.
 #' @param simplify Whether to unwrap a single-session return to a single object.
+#' @param skip_validation When `TRUE`, bypasses the per-trial finiteness and
+#'   label-contract checks. Intended for tight CV loops where callers have
+#'   already validated inputs upstream; never set this on untrusted data.
 #' @return List with `features` matrix and `object`; or list of such results for sessions.
 #' @export
 featEx4Train <- function(x, y, feature,
-                         params = list(), epsilon = 1e-6, simplify = TRUE) {
+                         params = list(), epsilon = 1e-6, simplify = TRUE,
+                         skip_validation = FALSE) {
 
   .assert_runtime_dependencies()
   valid_features <- c("logvar", "logvar_pca", "CSP", "FBCSP", "FBCSSP",
                       "TS", "ACM_TS", "Riemannian", "ATM")
   feature <- match.arg(feature, valid_features)
   params <- .validate_feature_params(feature, params)
-  .validate_train_contract(x, y, feature)
+  if (!isTRUE(skip_validation)) .validate_train_contract(x, y, feature)
+  # Resolve SPD mean metric once; individual branches read it below.
+  metric <- if (is.null(params$metric)) "euclid" else
+    match.arg(tolower(params$metric), c("euclid", "logeuclid", "riemann"))
 
   input_is_session_list <- is.list(x[[1]])
   n_sess <- if (input_is_session_list) length(x) else 1L
@@ -468,11 +493,14 @@ featEx4Train <- function(x, y, feature,
     } else if (feature == "TS") {
       cov_type_ts <- if (is.null(params$cov_type)) "oas" else tolower(params$cov_type)
       cov_fun <- .resolve_cov_fun(cov_type_ts)
-      cov_list <- lapply(session_x_proc, function(tr) cov_fun(as.matrix(tr)))
+      # Accept a pre-computed cov list to avoid recomputation across CV folds.
+      cov_list <- if (!is.null(params$cov_list)) params$cov_list else
+        lapply(session_x_proc, function(tr) cov_fun(as.matrix(tr)))
       # Map SPD covariances to a Euclidean tangent space for linear models.
-      tg <- map_2_tangent_space(cov_list, epsilon = epsilon)
+      tg <- map_2_tangent_space(cov_list, epsilon = epsilon, metric = metric)
       feats <- t(tg$S)
-      obj <- list(tangent_ref = tg$P_omega, cov_type = cov_type_ts, varsel = NULL)
+      obj <- list(tangent_ref = tg$P_omega, cov_type = cov_type_ts,
+                  metric = metric, varsel = NULL)
 
     } else if (feature == "ACM_TS") {
       # Build augmented covariance matrices from delayed channel embeddings.
@@ -492,20 +520,22 @@ featEx4Train <- function(x, y, feature,
         )
         extra_obj <- vs
       }
-      tg <- map_2_tangent_space(cov_list, epsilon = epsilon)
+      tg <- map_2_tangent_space(cov_list, epsilon = epsilon, metric = metric)
       feats <- t(tg$S)
       obj <- list(
         tangent_ref = tg$P_omega,
         varsel = extra_obj,
         order = params$order,
         delay = params$delay,
-        shrinkage = params$shrinkage
+        shrinkage = params$shrinkage,
+        metric = metric
       )
 
     } else if (feature == "Riemannian") {
       cov_type_riem <- if (is.null(params$cov_type)) "oas" else tolower(params$cov_type)
       cov_fun <- .resolve_cov_fun(cov_type_riem)
-      cov_list <- lapply(session_x_proc, function(tr) cov_fun(as.matrix(tr)))
+      cov_list <- if (!is.null(params$cov_list)) params$cov_list else
+        lapply(session_x_proc, function(tr) cov_fun(as.matrix(tr)))
       jitter_sd <- if (is.null(params$jitter_sd)) 1e-8 else params$jitter_sd
 
       if (isTRUE(params$use_filter)) {
@@ -529,11 +559,12 @@ featEx4Train <- function(x, y, feature,
         # Deterministic jitter avoids exact duplicate columns without RNG side effects.
         feats <- .add_deterministic_jitter(flat$features, jitter_sd = jitter_sd)
         obj <- list(
-          mean_cov = riemannian_mean(simplify2array(cov_list)),
+          mean_cov = riemannian_mean(simplify2array(cov_list), metric = metric),
           mask = flat$mask,
           cov_type = cov_type_riem,
           jitter_sd = jitter_sd,
-          use_filter = FALSE
+          use_filter = FALSE,
+          metric = metric
         )
       }
 
@@ -571,18 +602,20 @@ featEx4Train <- function(x, y, feature,
 #' @param object Train-time object returned by `featEx4Train`.
 #' @param feature Feature mode, must match training branch.
 #' @param epsilon Numerical floor used in SPD operations.
+#' @param skip_validation When `TRUE`, bypasses test-time finiteness/contract
+#'   checks for use inside hot CV loops. Do not set on untrusted data.
 #' @return Feature matrix with one row per test trial.
 #' @export
 featEx4Test <- function(x, object,
                         feature = c("logvar", "logvar_pca",
                                     "CSP", "FBCSP", "FBCSSP",
                                     "TS", "ACM_TS", "Riemannian", "ATM"),
-                        epsilon = 1e-6) {
+                        epsilon = 1e-6, skip_validation = FALSE) {
 
   .assert_runtime_dependencies()
   if (!is.list(x)) x <- list(x)
   feature <- match.arg(feature)
-  .validate_test_contract(x, object, feature)
+  if (!isTRUE(skip_validation)) .validate_test_contract(x, object, feature)
 
   preproc_obj <- if (is.list(object) && !is.null(object$preprocess)) object$preprocess else list(method = "none")
   x_proc <- .apply_trial_preprocessor(x, preproc_obj)

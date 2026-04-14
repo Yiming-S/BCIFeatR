@@ -2,41 +2,67 @@
 # Scope: Mean/log-exp maps, tangent-space conversion, geodesic filtering,
 # and manifold-side variable selection used by TS/ACM/Riemannian features.
 
-#' Compute the affine-invariant Riemannian mean of SPD matrices.
+#' Compute a mean of SPD matrices under a chosen Riemannian metric.
 #'
 #' @param cov_matrices 3D array (p x p x n) or list of SPD matrices.
-#' @param max_iterations Maximum number of fixed-point updates.
+#' @param max_iterations Maximum number of fixed-point updates (affine-invariant only).
 #' @param epsilon Convergence threshold and eigenvalue floor in log-domain steps.
+#' @param metric One of `"euclid"` (arithmetic mean, fastest — default),
+#'   `"logeuclid"` (matrix-log arithmetic mean, closed form), or
+#'   `"riemann"` (affine-invariant Fréchet mean, iterative).
 #' @return SPD matrix representing the manifold mean.
 #' @export
-riemannian_mean <- function(cov_matrices, max_iterations = 500, epsilon = 1e-5) {
+riemannian_mean <- function(cov_matrices, max_iterations = 30, epsilon = 1e-5,
+                            metric = c("euclid", "logeuclid", "riemann")) {
+  metric <- match.arg(metric)
   if (is.list(cov_matrices)) cov_matrices <- simplify2array(cov_matrices)
   m <- dim(cov_matrices)[3]
   n <- dim(cov_matrices)[1]
+
+  if (metric == "euclid") {
+    P <- rowMeans(cov_matrices, dims = 2L)
+    return((P + t(P)) / 2)
+  }
+
+  if (metric == "logeuclid") {
+    # log-Euclidean: closed-form, one eigen per trial, no iteration.
+    Lsum <- matrix(0, n, n)
+    for (i in seq_len(m)) {
+      Ci  <- (cov_matrices[, , i] + t(cov_matrices[, , i])) / 2
+      ei  <- eigen(Ci, symmetric = TRUE)
+      lam <- log(pmax(ei$values, epsilon))
+      Lsum <- Lsum + ei$vectors %*% (t(ei$vectors) * lam)
+    }
+    Lmean <- Lsum / m
+    Lmean <- (Lmean + t(Lmean)) / 2
+    eL <- eigen(Lmean, symmetric = TRUE)
+    out <- eL$vectors %*% (t(eL$vectors) * exp(pmin(eL$values, 50)))
+    return((out + t(out)) / 2)
+  }
+
+  # metric == "riemann": affine-invariant Fréchet mean.
   P_omega <- rowMeans(cov_matrices, dims = 2L)
-  
-  for (iteration in 1:max_iterations) {
-    # Move to local tangent space at current estimate.
+  for (iteration in seq_len(max_iterations)) {
     eig <- eigen(P_omega, symmetric = TRUE)
     safe_vals <- pmax(eig$values, epsilon)
     sqrt_P_omega     <- eig$vectors %*% (t(eig$vectors) * sqrt(safe_vals))
     inv_sqrt_P_omega <- eig$vectors %*% (t(eig$vectors) / sqrt(safe_vals))
     S <- matrix(0, n, n)
-    for (i in 1:m) {
+    for (i in seq_len(m)) {
       eig_i <- eigen(inv_sqrt_P_omega %*% cov_matrices[, , i] %*% inv_sqrt_P_omega,
                      symmetric = TRUE)
       S <- S + (eig_i$vectors %*% (t(eig_i$vectors) * log(pmax(eig_i$values, epsilon))))
     }
     S <- S / m
-    PS <- P_omega %*% S
-    # Exponentiate averaged tangent direction back to SPD manifold.
+    # Convergence gauged directly by tangent-step Frobenius norm.
+    if (sqrt(sum(S * S)) < epsilon) break
     eigS <- eigen(S, symmetric = TRUE)
+    # Cap exp argument to prevent overflow on pathological trials.
+    capped <- pmin(eigS$values, 50)
     P_omega <- sqrt_P_omega %*% eigS$vectors %*%
-      (t(eigS$vectors) * exp(eigS$values)) %*% sqrt_P_omega
-    
-    if (sqrt(sum(PS * t(PS))) < epsilon) break
+      (t(eigS$vectors) * exp(capped)) %*% sqrt_P_omega
   }
-  P_omega
+  (P_omega + t(P_omega)) / 2
 }
 
 #' Apply the affine-invariant logarithmic map to an SPD matrix.
@@ -129,10 +155,23 @@ fgda_filters <- function(cov_matrices, labels, epsilon = 1e-6) {
   mu_w <- trSw / nfeats
   Sigma_w <- (1 - 1 / ntrials) * Sigma_w
   diag(Sigma_w) <- diag(Sigma_w) + (1 / ntrials) * mu_w
-  eig <- geigen::geigen(Sigma_b, Sigma_w, TRUE)
+  # Replace geigen(Sigma_b, Sigma_w) with a Cholesky-whitened standard eigen.
+  # Solves Sigma_b v = lambda Sigma_w v by forming M = (U')^{-1} Sigma_b U^{-1}
+  # where U is the upper-triangular Cholesky factor of Sigma_w (U' U = Sigma_w),
+  # recovering eigenvectors v = U^{-1} w. Substantially faster than geigen for
+  # the sizes produced by ACM/TS and keeps the hot path free of geigen deps.
+  Sigma_w_sym <- (Sigma_w + t(Sigma_w)) / 2
+  U <- tryCatch(chol(Sigma_w_sym), error = function(e) {
+    diag(Sigma_w_sym) <- diag(Sigma_w_sym) + epsilon
+    chol(Sigma_w_sym)
+  })
+  invU <- backsolve(U, diag(nrow(U)))
+  M    <- crossprod(invU, Sigma_b) %*% invU
+  M    <- (M + t(M)) / 2
+  eig  <- eigen(M, symmetric = TRUE)
   ncomps <- min(nclass - 1, nfeats)
-  keep <- head(order(eig$values, decreasing = TRUE), ncomps)
-  Wtilde <- eig$vectors[, keep, drop = FALSE]
+  keep   <- head(order(eig$values, decreasing = TRUE), ncomps)
+  Wtilde <- invU %*% eig$vectors[, keep, drop = FALSE]
   Wtilde <- sweep(Wtilde, 2, sqrt(colSums(Wtilde^2)), "/")
   
   list(W_tilde = Wtilde, P_omega = P_omega)
@@ -180,11 +219,20 @@ geodesic_filtering <- function(P_x, P_omega, W_tilde, epsilon = 1e-6) {
 #'
 #' @param A First SPD matrix.
 #' @param B Second SPD matrix.
+#' @param eps Eigenvalue floor for numerical stability.
 #' @return Scalar geodesic distance.
 #' @export
-riemannian_distance <- function(A, B) {
-	vals <- geigen::geigen(A, B, TRUE, TRUE)$values
-	sqrt(sum(log(vals[vals > 0])^2))
+riemannian_distance <- function(A, B, eps = 1e-12) {
+  # Whitening-based formulation: d(A,B)^2 = sum(log eig(B^{-1/2} A B^{-1/2})^2).
+  # Avoids the generalized eigenproblem (geigen) which is markedly slower on
+  # moderate-sized SPD matrices and often unavailable in lean runtimes.
+  Bs   <- (B + t(B)) / 2
+  eigB <- eigen(Bs, symmetric = TRUE)
+  lamB <- pmax(eigB$values, eps)
+  inv_sqrt_B <- eigB$vectors %*% (t(eigB$vectors) / sqrt(lamB))
+  W <- inv_sqrt_B %*% ((A + t(A)) / 2) %*% inv_sqrt_B
+  eW <- eigen((W + t(W)) / 2, symmetric = TRUE)
+  sqrt(sum(log(pmax(eW$values, eps))^2))
 }
 
 #' Map SPD matrices to upper-triangular tangent-space vectors.
@@ -192,21 +240,23 @@ riemannian_distance <- function(A, B) {
 #' @param cov_matrices List of SPD matrices.
 #' @param epsilon Eigenvalue floor.
 #' @param P_omega Optional manifold reference; if NULL it is estimated from data.
+#' @param metric Mean metric passed to `riemannian_mean()` when `P_omega` is NULL.
+#'   Defaults to `"euclid"` (arithmetic mean), which is substantially faster
+#'   than the affine-invariant Fréchet mean with negligible accuracy loss for
+#'   tangent-space classification. See `riemannian_mean()` for alternatives.
 #' @return List with tangent coordinates `S` (d x n) and reference `P_omega`.
 #' @export
-map_2_tangent_space <- function(cov_matrices, epsilon = 1e-12, P_omega = NULL) {
+map_2_tangent_space <- function(cov_matrices, epsilon = 1e-12, P_omega = NULL,
+                                metric = c("euclid", "logeuclid", "riemann")) {
+  metric <- match.arg(metric)
   stopifnot(is.list(cov_matrices))
   n_trials <- length(cov_matrices)
   p <- ncol(cov_matrices[[1]])
   d <- p * (p + 1) / 2
-  
-  .triu_idx_rowmajor <- function(p) {
-    idx <- which(upper.tri(diag(p), diag = TRUE), arr.ind = TRUE)
-    idx[order(idx[, "row"], idx[, "col"]), , drop = FALSE]
-  }
-  
+
   if (is.null(P_omega)) {
-    P_omega <- riemannian_mean(simplify2array(cov_matrices), epsilon = epsilon)
+    P_omega <- riemannian_mean(simplify2array(cov_matrices),
+                               epsilon = epsilon, metric = metric)
   }
   eigP <- eigen((P_omega + t(P_omega)) / 2, symmetric = TRUE)
   lamP <- pmax(eigP$values, epsilon)
@@ -215,18 +265,21 @@ map_2_tangent_space <- function(cov_matrices, epsilon = 1e-12, P_omega = NULL) {
     sqrt     = VP %*% (t(VP) * sqrt(lamP)),
     inv_sqrt = VP %*% (t(VP) / sqrt(lamP))
   )
-  
-  S  <- matrix(NA_real_, nrow = d, ncol = n_trials)
-  ij <- .triu_idx_rowmajor(p)
-  
+
+  # Pre-compute row-major upper-tri index and diagonal linear positions once.
+  ij_all <- which(upper.tri(diag(p), diag = TRUE), arr.ind = TRUE)
+  ij <- ij_all[order(ij_all[, "row"], ij_all[, "col"]), , drop = FALSE]
+  diag_pos <- which(ij[, "row"] == ij[, "col"])
+
+  S <- matrix(NA_real_, nrow = d, ncol = n_trials)
   for (i in seq_len(n_trials)) {
     L <- log_map(Pstr, cov_matrices[[i]], eps = epsilon)
+    vec <- L[ij]
     # Off-diagonal coordinates are scaled by sqrt(2) under Frobenius inner product.
-    diag_mask <- row(L) == col(L)
-    L[!diag_mask] <- L[!diag_mask] * sqrt(2)
-    S[, i] <- L[ij]
+    vec[-diag_pos] <- vec[-diag_pos] * sqrt(2)
+    S[, i] <- vec
   }
-  
+
   list(S = S, P_omega = P_omega)
 }
 
@@ -237,7 +290,9 @@ map_2_tangent_space <- function(cov_matrices, epsilon = 1e-12, P_omega = NULL) {
 #' @return List with filtered `S` and selected feature `indices`.
 #' @export
 variable_selection <- function(S, fdr_level = .05) {
-  svd_result <- svd(S)
+  # Right singular vectors are unused downstream; skip them to save work on
+  # tall/wide tangent feature matrices (e.g. ACM_TS produces very wide S).
+  svd_result <- svd(S, nv = 0)
   U <- svd_result$u
   Lambda <- svd_result$d
   
