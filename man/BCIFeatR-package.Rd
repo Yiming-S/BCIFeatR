@@ -6,7 +6,7 @@
 \alias{BCIFeatR-package}
 \title{BCIFeatR: Feature Extraction Toolkit for Brain-Computer Interfaces}
 \description{
-A comprehensive feature extraction library for EEG-based brain-computer interfaces. Implements Common Spatial Patterns (CSP, FBCSP, FBCSSP), Riemannian geometry on SPD manifolds (tangent space, geodesic filtering, FGDA), Augmented Covariance Matrices (ACM), Avalanche Transition Matrices (ATM), log-variance features, and lightweight classifiers. Provides a unified train/test dispatcher with preprocessing, input validation, and metadata tracking.
+A comprehensive feature extraction library for EEG-based brain-computer interfaces. Implements Common Spatial Patterns (CSP, FBCSP, FBCSSP), Riemannian geometry on SPD manifolds (tangent space, geodesic filtering, FGDA), Augmented Covariance Matrices (ACM), Avalanche Transition Matrices (ATM), band-power and Hjorth features, log-variance features, and lightweight classifiers including a Riemannian Minimum Distance to Mean (MDM) model. Provides a unified train/test dispatcher with preprocessing, input validation, and metadata tracking.
 }
 \author{
 \strong{Maintainer}: Yiming Shen \email{yiming.shen001@umb.edu}

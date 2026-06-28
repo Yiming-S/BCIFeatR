@@ -106,3 +106,95 @@ multiclass_EL <- function(X, y, alpha = 0.5, lambda = 0.1,
     predict = function(Xnew) predict_ovr(model_ovr, Xnew)
   )
 }
+
+# Internal: resolve a per-trial covariance estimator for MDM. Extends the
+# shrinkage estimators with the plain sample covariance ("cov").
+.mdm_cov_fun <- function(cov_type) {
+  switch(tolower(cov_type),
+         oas = oas_covariance,
+         lw  = LW_covariance,
+         cov = function(m) stats::cov(as.matrix(m)),
+         stop("`cov_type` must be 'oas', 'lw', or 'cov'."))
+}
+
+#' Train a Riemannian Minimum Distance to Mean (MDM) classifier.
+#'
+#' Estimates one SPD class mean per label from per-trial covariance matrices.
+#' Test trials are then assigned to the nearest class mean under the
+#' affine-invariant Riemannian distance. The geometry reuses
+#' [riemannian_mean()] and [riemannian_distance()].
+#'
+#' @param x List of trial matrices (`samples x channels`).
+#' @param y Class labels aligned with `x`.
+#' @param cov_type Per-trial covariance estimator: `"oas"`, `"lw"`, or `"cov"`.
+#' @param metric Class-mean metric forwarded to [riemannian_mean()]:
+#'   `"riemann"` (affine-invariant Fréchet mean, default), `"logeuclid"`, or
+#'   `"euclid"`.
+#' @param epsilon Numerical floor for SPD operations.
+#' @return An object of class `"mdm"`: a list with per-class `means`, the
+#'   `classes` levels, and the `metric`/`cov_type`/`epsilon` used.
+#' @seealso [mdm_predict()]
+#' @export
+mdm_train <- function(x, y,
+                      cov_type = c("oas", "lw", "cov"),
+                      metric = c("riemann", "logeuclid", "euclid"),
+                      epsilon = 1e-6) {
+  cov_type <- match.arg(cov_type)
+  metric   <- match.arg(metric)
+  if (!is.list(x) || length(x) == 0L) stop("`x` must be a non-empty trial list.")
+  if (length(y) != length(x)) stop("length(y) must equal the number of trials.")
+  if (anyNA(y)) stop("`y` contains NA labels.")
+
+  cov_fun  <- .mdm_cov_fun(cov_type)
+  cov_list <- lapply(x, function(tr) cov_fun(as.matrix(tr)))
+  p <- nrow(cov_list[[1]])
+
+  y <- factor(y)
+  classes <- levels(y)
+  means <- lapply(classes, function(cl) {
+    sub <- cov_list[which(y == cl)]
+    # Force a 3D array so single-trial classes keep a valid stack dimension.
+    arr <- array(unlist(sub), dim = c(p, p, length(sub)))
+    riemannian_mean(arr, epsilon = epsilon, metric = metric)
+  })
+  names(means) <- classes
+
+  structure(
+    list(means = means, classes = classes,
+         metric = metric, cov_type = cov_type, epsilon = epsilon),
+    class = "mdm"
+  )
+}
+
+#' Predict class labels with a trained MDM classifier.
+#'
+#' @param model An `"mdm"` object from [mdm_train()].
+#' @param x Trial list or a single trial matrix.
+#' @return A factor of predicted classes (levels match the training classes).
+#'   The trial-by-class Riemannian distance matrix is attached as attribute
+#'   `"distances"`.
+#' @seealso [mdm_train()]
+#' @export
+mdm_predict <- function(model, x) {
+  if (!inherits(model, "mdm")) {
+    stop("`model` must be an 'mdm' object from mdm_train().")
+  }
+  if (!is.list(x)) x <- list(x)
+  cov_fun  <- .mdm_cov_fun(model$cov_type)
+  cov_list <- lapply(x, function(tr) cov_fun(as.matrix(tr)))
+  eps <- if (is.null(model$epsilon)) 1e-12 else model$epsilon
+
+  nclass <- length(model$classes)
+  D <- vapply(cov_list, function(C) {
+    vapply(model$means, function(M) riemannian_distance(C, M, eps = eps),
+           numeric(1))
+  }, numeric(nclass))
+  D <- if (is.null(dim(D))) matrix(D, nrow = nclass) else D
+  D <- t(D)                          # n_trials x n_classes
+  colnames(D) <- model$classes
+
+  idx <- max.col(-D, ties.method = "first")
+  out <- factor(model$classes[idx], levels = model$classes)
+  attr(out, "distances") <- D
+  out
+}

@@ -45,30 +45,21 @@ mibif <- function(data_list, labels, k = 0.3, method = 'combine', num_random = N
 
   k <- ceiling(ncol(combined_data) * k)
   k <- min(k, ncol(combined_data))
-  compute_mi <- function(feature, class) {
-    return(infotheo::mutinformation(infotheo::discretize(feature), infotheo::discretize(class)))
-  }
   feature_names <- colnames(combined_data)
   if (is.null(feature_names)) {
     feature_names <- paste0("V", 1:ncol(combined_data))
   }
-  all_indices <- seq_len(ncol(combined_data))
-  S <- list()
-  selected_set <- logical(length(all_indices))
-  selected_indices <- integer(0)
-  while (length(S) < k) {
-    # Greedy forward selection by maximal mutual information.
-    mi_values <- vapply(all_indices, function(i) {
-      if (selected_set[i]) -Inf
-      else compute_mi(combined_data[, i], class_vector)
-    }, numeric(1))
-    best_idx <- which.max(mi_values)
-    best_name <- feature_names[best_idx]
-
-    S[[best_name]] <- combined_data[, best_idx]
-    selected_set[best_idx] <- TRUE
-    selected_indices <- c(selected_indices, best_idx)
-  }
+  # Pure max-relevance selection: each feature's mutual information with the
+  # class is independent of which others are picked, so compute it once and take
+  # the top-k by rank instead of rescoring every feature on every iteration
+  # (O(p) MI evaluations instead of O(k*p)). The discretized class is shared.
+  disc_class <- infotheo::discretize(class_vector)
+  mi_values <- vapply(seq_len(ncol(combined_data)), function(i) {
+    infotheo::mutinformation(infotheo::discretize(combined_data[, i]), disc_class)
+  }, numeric(1))
+  selected_indices <- order(mi_values, decreasing = TRUE)[seq_len(k)]
+  S <- combined_data[, selected_indices, drop = FALSE]
+  colnames(S) <- feature_names[selected_indices]
   return(list(selected_features = as.data.frame(S),
               selected_indices = selected_indices))
 }

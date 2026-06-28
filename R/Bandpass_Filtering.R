@@ -32,6 +32,56 @@ freqBank <- function(eeg, fs, order = 3,
   lapply(filters, gsignal::filtfilt, x = eeg)
 }
 
+#' Split a labelled time series into per-trial index segments.
+#'
+#' Segments a sample-indexed label/marker vector into trials, either by maximal
+#' runs of constant label (`by_label = TRUE`) or into fixed-length windows
+#' within each constant-label run (`by_label = FALSE`).
+#'
+#' @param labels Integer-coercible vector of per-sample labels/markers.
+#' @param by_label When `TRUE`, each maximal run of identical labels becomes one
+#'   trial. When `FALSE`, each run is further chopped into windows of `seglen`
+#'   samples, keeping only windows of at least `minlen` samples.
+#' @param minlen Minimum window length for `by_label = FALSE`; defaults to
+#'   `seglen`.
+#' @param seglen Window length in samples; required when `by_label = FALSE`.
+#' @return A list of integer index vectors, one per trial.
+#' @export
+splitTimeRange <- function(labels, by_label = TRUE,
+                           minlen = NULL, seglen = NULL) {
+  labels <- as.integer(labels)
+  n <- length(labels)
+  if (n < 1L) stop("`labels` must be non-empty.")
+
+  if (by_label) {
+    # Segment on label-value changes: each maximal constant run is one trial.
+    breakpoints <- c(0L, which(diff(labels) != 0L), n)
+    return(lapply(seq_len(length(breakpoints) - 1L), function(i) {
+      (breakpoints[i] + 1L):breakpoints[i + 1L]
+    }))
+  }
+
+  # Fixed-length windowing within each constant-label run.
+  if (is.null(seglen)) stop("`seglen` is required when by_label = FALSE.")
+  seglen <- as.integer(seglen)
+  if (!is.finite(seglen) || seglen < 1L) stop("`seglen` must be an integer >= 1.")
+  minlen <- if (is.null(minlen)) seglen else min(as.integer(minlen), seglen)
+
+  idx   <- which(diff(labels) != 0L)
+  start <- c(1L, idx + 1L)
+  end   <- c(idx, n)
+  trials <- list()
+  for (s in seq_along(start)) {
+    starts <- seq(start[s], end[s], by = seglen)
+    ends   <- c(starts[-1] - 1L, end[s])
+    valid  <- (ends - starts + 1L) >= minlen
+    for (j in which(valid)) {
+      trials <- c(trials, list(starts[j]:ends[j]))
+    }
+  }
+  trials
+}
+
 #' Select an informative frequency range from PSD-label association.
 #'
 #' @param x Signal matrix (`samples x channels`).
@@ -49,10 +99,6 @@ freqBandSelect <- function(x, y, fs,
                            flo = 1, fhi = fs/2, 
                            winlen = NULL, overlap = 0.5, 
                            by_label = TRUE, trials = NULL) {
-  if (!exists("pwelch", mode = "function"))
-    stop("Function 'pwelch' is required but not found. Please define or source it.")
-  if (!exists("splitTimeRange", mode = "function"))
-    stop("Function 'splitTimeRange' is required but not found. Please define or source it.")
   stopifnot(NROW(x) == length(y), is.matrix(x),
             is.numeric(y), is.numeric(fs),
             flo > 0, flo < fhi, fhi <= (fs / 2),

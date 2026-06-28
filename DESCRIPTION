@@ -1,6 +1,6 @@
 Package: BCIFeatR
 Title: Feature Extraction Toolkit for Brain-Computer Interfaces
-Version: 0.2.0
+Version: 0.3.0
 Authors@R:
     person("Yiming", "Shen", role = c("aut", "cre"),
            email = "yiming.shen001@umb.edu")
@@ -8,9 +8,11 @@ Description: A comprehensive feature extraction library for EEG-based
     brain-computer interfaces. Implements Common Spatial Patterns (CSP,
     FBCSP, FBCSSP), Riemannian geometry on SPD manifolds (tangent space,
     geodesic filtering, FGDA), Augmented Covariance Matrices (ACM),
-    Avalanche Transition Matrices (ATM), log-variance features, and
-    lightweight classifiers. Provides a unified train/test dispatcher
-    with preprocessing, input validation, and metadata tracking.
+    Avalanche Transition Matrices (ATM), band-power and Hjorth features,
+    log-variance features, and lightweight classifiers including a
+    Riemannian Minimum Distance to Mean (MDM) model. Provides a unified
+    train/test dispatcher with preprocessing, input validation, and
+    metadata tracking.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -19,7 +21,6 @@ Depends:
     R (>= 4.0.0)
 Imports:
     stats,
-    geigen,
     gsignal
 Suggests:
     infotheo,

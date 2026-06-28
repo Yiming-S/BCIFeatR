@@ -71,20 +71,26 @@ atmFindAvalanches <- function(B, minLen = 2L) {
 #' @export
 atmCounts <- function(B, segs) {
   D <- ncol(B)
-  countIJ <- matrix(0L, D, D)
-  countI  <- integer(D)
+  if (!length(segs)) return(list(countIJ = matrix(0, D, D), countI = numeric(D)))
+
+  # Stack every within-segment (t, t+1) transition into "from"/"to" frames, then
+  # let a single crossprod do the counting: countIJ[i,j] = sum_t from[t,i]*to[t,j]
+  # is exactly the original double loop, but in one BLAS call.
+  from_list <- vector("list", length(segs))
+  to_list   <- vector("list", length(segs))
+  keep <- 0L
   for (se in segs) {
     s <- se[1]; e <- se[2]
     if (e <= s) next
-    for (t in s:(e - 1L)) {
-      iIdx <- which(B[t, ] != 0L)
-      if (!length(iIdx)) next
-      jIdx <- which(B[t + 1L, ] != 0L)
-      if (length(jIdx)) countIJ[iIdx, jIdx] <- countIJ[iIdx, jIdx] + 1L
-      countI[iIdx] <- countI[iIdx] + 1L
-    }
+    keep <- keep + 1L
+    from_list[[keep]] <- B[s:(e - 1L), , drop = FALSE]
+    to_list[[keep]]   <- B[(s + 1L):e, , drop = FALSE]
   }
-  list(countIJ = countIJ, countI = countI)
+  if (keep == 0L) return(list(countIJ = matrix(0, D, D), countI = numeric(D)))
+
+  Fb <- (do.call(rbind, from_list[seq_len(keep)]) != 0L) + 0
+  Tb <- (do.call(rbind, to_list[seq_len(keep)])   != 0L) + 0
+  list(countIJ = crossprod(Fb, Tb), countI = colSums(Fb))
 }
 
 #' Convert transition counts to row-normalized transition probabilities.

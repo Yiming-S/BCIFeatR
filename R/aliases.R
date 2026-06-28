@@ -48,3 +48,11 @@ freq_band_select <- function(x, y, fs, flo = 1, fhi = fs / 2,
                  winlen = winlen, overlap = overlap,
                  by_label = by_label, trials = trials)
 }
+
+#' @rdname splitTimeRange
+#' @export
+split_time_range <- function(labels, by_label = TRUE,
+                             minlen = NULL, seglen = NULL) {
+  splitTimeRange(labels = labels, by_label = by_label,
+                 minlen = minlen, seglen = seglen)
+}

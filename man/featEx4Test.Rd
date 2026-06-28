@@ -9,7 +9,7 @@ featEx4Test(
   x,
   object,
   feature = c("logvar", "logvar_pca", "CSP", "FBCSP", "FBCSSP", "TS", "ACM_TS",
-    "Riemannian", "ATM"),
+    "Riemannian", "ATM", "bandpower", "Hjorth", "MVAR", "MSVAR"),
   epsilon = 1e-06,
   skip_validation = FALSE
 )

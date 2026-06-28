@@ -51,7 +51,7 @@
          stop("`cov_type` must be 'oas' or 'lw'."))
 }
 
-.required_runtime_pkgs <- c("geigen", "gsignal")
+.required_runtime_pkgs <- c("gsignal")
 
 #' Ensure required runtime dependencies are available.
 #'
@@ -159,6 +159,54 @@
          !is.finite(params$jitter_sd) || params$jitter_sd < 0)) {
       stop("`params$jitter_sd` must be a non-negative scalar for Riemannian.")
     }
+  } else if (feature == "bandpower") {
+    if (!is.numeric(params$fs) || length(params$fs) != 1L ||
+        !is.finite(params$fs) || params$fs <= 0) {
+      stop("`params$fs` must be a positive scalar for bandpower.")
+    }
+    params$frequency_bands <- .validate_frequency_bands(params$frequency_bands, fs = params$fs)
+    if (is.null(params$order)) params$order <- 3L
+    if (!.is_positive_intish_scalar(params$order)) {
+      stop("`params$order` must be a positive integer for bandpower.")
+    }
+    params$order <- as.integer(params$order)
+    if (is.null(params$relative)) params$relative <- FALSE
+    if (!is.logical(params$relative) || length(params$relative) != 1L) {
+      stop("`params$relative` must be a logical scalar for bandpower.")
+    }
+  } else if (feature == "Hjorth") {
+    if (is.null(params$log_activity)) params$log_activity <- FALSE
+    if (!is.logical(params$log_activity) || length(params$log_activity) != 1L) {
+      stop("`params$log_activity` must be a logical scalar for Hjorth.")
+    }
+  } else if (feature == "MVAR") {
+    if (is.null(params$order)) params$order <- 3L
+    if (!.is_positive_intish_scalar(params$order)) {
+      stop("`params$order` must be a positive integer for MVAR.")
+    }
+    params$order <- as.integer(params$order)
+    if (is.null(params$include_Q)) params$include_Q <- TRUE
+    if (!is.logical(params$include_Q) || length(params$include_Q) != 1L) {
+      stop("`params$include_Q` must be a logical scalar for MVAR.")
+    }
+  } else if (feature == "MSVAR") {
+    if (is.null(params$M)) params$M <- 2L
+    if (is.null(params$p)) params$p <- 1L
+    if (!.is_positive_intish_scalar(params$M)) {
+      stop("`params$M` (regimes) must be a positive integer for MSVAR.")
+    }
+    if (!.is_positive_intish_scalar(params$p)) {
+      stop("`params$p` (VAR order) must be a positive integer for MSVAR.")
+    }
+    params$M <- as.integer(params$M)
+    params$p <- as.integer(params$p)
+    if (is.null(params$include_occupancy)) params$include_occupancy <- FALSE
+    if (!is.logical(params$include_occupancy) || length(params$include_occupancy) != 1L) {
+      stop("`params$include_occupancy` must be a logical scalar for MSVAR.")
+    }
+    if (!is.null(params$control) && !is.list(params$control)) {
+      stop("`params$control` must be a list for MSVAR.")
+    }
   }
   params
 }
@@ -189,6 +237,54 @@
   set.seed(20240101L + nrow(feats) * 31L + ncol(feats))
   feats + matrix(stats::rnorm(length(feats), sd = jitter_sd),
                  nrow = nrow(feats), ncol = ncol(feats))
+}
+
+#' Normalize a SimAM attention configuration to a canonical spec.
+#'
+#' Accepts `NULL`/`FALSE` (disabled), `TRUE` (vanilla defaults), a method-name
+#' string, or a list with `method`/`lambda`/`eps`.
+#'
+#' @param simam SimAM configuration as described above.
+#' @return List with `enabled` and, when enabled, `method`/`lambda`/`eps`.
+#' @keywords internal
+.normalize_simam_spec <- function(simam) {
+  if (is.null(simam) || isFALSE(simam)) return(list(enabled = FALSE))
+  methods <- c("vanilla", "robust", "corr")
+  # lambda = NULL lets simAM() apply its scale-invariant per-method default.
+  if (isTRUE(simam)) {
+    return(list(enabled = TRUE, method = "vanilla", lambda = NULL, eps = 1e-4))
+  }
+  if (is.character(simam) && length(simam) == 1L) {
+    return(list(enabled = TRUE, method = match.arg(tolower(simam), methods),
+                lambda = NULL, eps = 1e-4))
+  }
+  if (is.list(simam)) {
+    method <- if (is.null(simam$method)) "vanilla" else
+      match.arg(tolower(simam$method), methods)
+    lambda <- simam$lambda
+    eps    <- if (is.null(simam$eps)) 1e-4 else simam$eps
+    if (!is.null(lambda) &&
+        (!is.numeric(lambda) || length(lambda) != 1L || !is.finite(lambda))) {
+      stop("`params$simam$lambda` must be a finite scalar (or NULL).")
+    }
+    if (!is.numeric(eps) || length(eps) != 1L || !is.finite(eps) || eps <= 0) {
+      stop("`params$simam$eps` must be a positive scalar.")
+    }
+    return(list(enabled = TRUE, method = method, lambda = lambda, eps = eps))
+  }
+  stop("`params$simam` must be NULL/logical, a method name, or a list.")
+}
+
+#' Apply a normalized SimAM spec to a trial list.
+#'
+#' @param trials List of trial matrices.
+#' @param spec Spec from `.normalize_simam_spec()`.
+#' @return List of (possibly re-weighted) trial matrices.
+#' @keywords internal
+.apply_simam <- function(trials, spec) {
+  if (is.null(spec) || !isTRUE(spec$enabled)) return(lapply(trials, as.matrix))
+  simAM(lapply(trials, as.matrix),
+        method = spec$method, lambda = spec$lambda, eps = spec$eps)
 }
 
 #' Normalize preprocess configuration to a canonical method list.
@@ -342,7 +438,7 @@
       for (i in seq_along(x)) {
         .validate_trial_list(x[[i]], sprintf("x[[%d]]", i))
         .validate_labels(y[[i]], length(x[[i]]), sprintf("y[[%d]]", i), allow_null = (feature == "ATM"))
-        if (feature %in% c("CSP", "FBCSP", "FBCSSP") &&
+        if (feature %in% c("CSP", "FBCSP", "FBCSSP", "MSVAR") &&
             !is.null(y[[i]]) && length(unique(y[[i]])) < 2L) {
           stop(sprintf("%s requires at least two classes in y[[%d]].", feature, i))
         }
@@ -386,7 +482,7 @@
     n_trials = nrow(feats),
     n_features = ncol(feats),
     preprocess = preprocess_method,
-    version = "0.2",
+    version = "0.3",
     params = params
   )
 }
@@ -443,7 +539,8 @@ featEx4Train <- function(x, y, feature,
 
   .assert_runtime_dependencies()
   valid_features <- c("logvar", "logvar_pca", "CSP", "FBCSP", "FBCSSP",
-                      "TS", "ACM_TS", "Riemannian", "ATM")
+                      "TS", "ACM_TS", "Riemannian", "ATM",
+                      "bandpower", "Hjorth", "MVAR", "MSVAR")
   feature <- match.arg(feature, valid_features)
   params <- .validate_feature_params(feature, params)
   if (!isTRUE(skip_validation)) .validate_train_contract(x, y, feature)
@@ -465,10 +562,13 @@ featEx4Train <- function(x, y, feature,
       session_y <- y
     }
 
+    # Optional SimAM attention re-weighting precedes channel preprocessing.
+    simam_spec    <- .normalize_simam_spec(params$simam)
+    session_x_att <- .apply_simam(session_x, simam_spec)
     preproc_spec <- .normalize_preprocess_spec(params$preprocess)
-    preproc_obj  <- .fit_trial_preprocessor(session_x, preproc_spec, epsilon = epsilon)
+    preproc_obj  <- .fit_trial_preprocessor(session_x_att, preproc_spec, epsilon = epsilon)
     # All feature branches operate on the same preprocessed trials.
-    session_x_proc <- .apply_trial_preprocessor(session_x, preproc_obj)
+    session_x_proc <- .apply_trial_preprocessor(session_x_att, preproc_obj)
 
     if (feature == "logvar") {
       feats <- log_var(session_x_proc)
@@ -598,11 +698,46 @@ featEx4Train <- function(x, y, feature,
       feats <- atm_res$features
       obj <- atm_res$object
 
+    } else if (feature == "bandpower") {
+      feats <- extract_bandpower(
+        session_x_proc,
+        fs = params$fs,
+        frequency_bands = params$frequency_bands,
+        order = params$order,
+        relative = params$relative
+      )
+      obj <- list(
+        fs = params$fs,
+        frequency_bands = params$frequency_bands,
+        order = params$order,
+        relative = params$relative
+      )
+
+    } else if (feature == "Hjorth") {
+      feats <- hjorth_parameters(session_x_proc, log_activity = params$log_activity)
+      obj <- list(log_activity = params$log_activity)
+
+    } else if (feature == "MVAR") {
+      feats <- extract_mvar(session_x_proc, order = params$order,
+                            include_Q = params$include_Q)
+      obj <- list(order = params$order, include_Q = params$include_Q)
+
+    } else if (feature == "MSVAR") {
+      # Per-class generative MSVAR; feature = per-class whole-trial log-likelihood
+      # (optionally with mean smoothed regime occupancy appended).
+      msvar_model <- msvar_train(session_x_proc, session_y,
+                                 M = params$M, p = params$p,
+                                 control = params$control, seed = params$seed)
+      feats <- .msvar_feature(msvar_model, session_x_proc,
+                              include_occupancy = params$include_occupancy)
+      obj <- list(msvar = msvar_model, include_occupancy = params$include_occupancy)
+
     } else {
       stop("Unsupported feature.")
     }
 
     obj <- .finalize_obj(obj, feature, feats, preproc_obj, params)
+    obj$simam <- simam_spec
     result[[i]] <- list(features = feats, object = obj)
   }
 
@@ -626,7 +761,8 @@ featEx4Train <- function(x, y, feature,
 featEx4Test <- function(x, object,
                         feature = c("logvar", "logvar_pca",
                                     "CSP", "FBCSP", "FBCSSP",
-                                    "TS", "ACM_TS", "Riemannian", "ATM"),
+                                    "TS", "ACM_TS", "Riemannian", "ATM",
+                                    "bandpower", "Hjorth", "MVAR", "MSVAR"),
                         epsilon = 1e-6, skip_validation = FALSE) {
 
   .assert_runtime_dependencies()
@@ -634,8 +770,10 @@ featEx4Test <- function(x, object,
   feature <- match.arg(feature)
   if (!isTRUE(skip_validation)) .validate_test_contract(x, object, feature)
 
+  simam_spec <- if (is.list(object)) object$simam else NULL
+  x_att <- .apply_simam(x, simam_spec)
   preproc_obj <- if (is.list(object) && !is.null(object$preprocess)) object$preprocess else list(method = "none")
-  x_proc <- .apply_trial_preprocessor(x, preproc_obj)
+  x_proc <- .apply_trial_preprocessor(x_att, preproc_obj)
 
   if (feature == "logvar") {
     feats <- log_var(x_proc)
@@ -704,6 +842,26 @@ featEx4Test <- function(x, object,
 
   } else if (feature == "ATM") {
     feats <- atmTest(x = x_proc, object = object)
+
+  } else if (feature == "bandpower") {
+    feats <- extract_bandpower(
+      x_proc,
+      fs = object$fs,
+      frequency_bands = object$frequency_bands,
+      order = object$order,
+      relative = isTRUE(object$relative)
+    )
+
+  } else if (feature == "Hjorth") {
+    feats <- hjorth_parameters(x_proc, log_activity = isTRUE(object$log_activity))
+
+  } else if (feature == "MVAR") {
+    feats <- extract_mvar(x_proc, order = object$order,
+                          include_Q = isTRUE(object$include_Q))
+
+  } else if (feature == "MSVAR") {
+    feats <- .msvar_feature(object$msvar, x_proc,
+                            include_occupancy = isTRUE(object$include_occupancy))
   }
 
   if (is.list(object) && is.list(object$metadata) && !is.null(object$metadata$n_features)) {

@@ -22,6 +22,10 @@ experimentation.
 | `ACM_TS` | Augmented Covariance Matrix + tangent space |
 | `Riemannian` | Riemannian mean + log-map with optional geodesic/FGDA filtering |
 | `ATM` | Avalanche Transition Matrix |
+| `bandpower` | Per-channel (log or relative) band power over a frequency-band bank |
+| `Hjorth` | Per-channel Hjorth parameters (activity, mobility, complexity) |
+| `MVAR` | Per-trial vector-autoregression coefficients (+ residual log-variance) |
+| `MSVAR` | Per-class Markov-switching VAR log-likelihood (generative, supervised) |
 
 ### Additional utilities
 
@@ -29,13 +33,20 @@ experimentation.
 - **Riemannian geometry** — SPD manifold operations (Riemannian mean, log/exp maps, geodesic filtering, FGDA)
 - **Bandpass filtering** — Butterworth filter bank and data-driven frequency-band selection
 - **Feature selection** — Fisher score, PCA, and MIBIF
-- **Classifiers** — Fisher LDA and elastic-net multiclass classifier
+- **Multi-view fusion** — regularized SUMCOR multiset CCA (`mcca_train` /
+  `mcca_transform`) for aligning multiple feature views
+- **Attention** — parameter-free SimAM re-weighting (`simAM`), also available as
+  the `params$simam` switch in the train/test dispatcher
+- **Classifiers** — Fisher LDA, elastic-net multiclass classifier, a
+  Riemannian Minimum Distance to Mean (MDM) classifier (`mdm_train` /
+  `mdm_predict`), and a per-class Markov-switching VAR generative classifier
+  (`msvar_train` / `msvar_predict`)
 
 ## Installation
 
 ```r
 # Install dependencies first (especially when installing from local/source tarballs)
-install.packages(c("geigen", "gsignal"))
+install.packages("gsignal")
 
 # Install from GitHub (requires devtools or remotes)
 remotes::install_github("Yiming-S/BCIFeatR", dependencies = TRUE)
@@ -81,7 +92,7 @@ multi_fit <- featEx4Train(
 ## Dependencies
 
 - **R** ≥ 4.0.0
-- **Imports**: `stats`, `geigen`, `gsignal`
+- **Imports**: `stats`, `gsignal`
 - **Suggests**: `infotheo` (for MIBIF feature selection), `testthat` (for tests)
 
 ## Testing

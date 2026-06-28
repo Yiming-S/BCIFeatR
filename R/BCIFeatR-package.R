@@ -1,11 +1,11 @@
 #' @keywords internal
 "_PACKAGE"
 
-#' @importFrom stats cov var sd prcomp p.adjust t.test cor
-#' @importFrom utils combn head
-#' @importFrom geigen geigen
+#' @importFrom stats cov var sd prcomp p.adjust t.test cor median mad
+#' @importFrom stats dist hclust cutree kmeans runif
+#' @importFrom utils combn head modifyList
 #' @importFrom gsignal butter filtfilt pwelch
 NULL
 
-# Functions checked at runtime via exists() — not part of this package.
-utils::globalVariables(c("perf_log_event", "splitTimeRange"))
+# Optional perf hook resolved at runtime via exists() — not part of this package.
+utils::globalVariables("perf_log_event")
