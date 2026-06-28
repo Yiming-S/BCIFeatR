@@ -1,6 +1,6 @@
 Package: BCIFeatR
 Title: Feature Extraction Toolkit for Brain-Computer Interfaces
-Version: 0.3.1
+Version: 0.3.2
 Authors@R:
     person("Yiming", "Shen", role = c("aut", "cre"),
            email = "yiming.shen001@umb.edu")

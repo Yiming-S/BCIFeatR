@@ -132,7 +132,7 @@ freqBandSelect <- function(x, y, fs,
   if (length(unique(y)) < 2L) {
     stop("freqBandSelect requires at least two distinct trial labels.")
   }
-  freq <- pwelch(x[trials[[1]],], fs = fs, 
+  freq <- pwelch(x[trials[[1]], , drop = FALSE], fs = fs,
                  window = winlen, overlap = overlap)$freq
   keep <- (freq >= flo & freq <= fhi)
   if (!any(keep)) {
@@ -141,11 +141,13 @@ freqBandSelect <- function(x, y, fs,
   freq <- freq[keep]
   nfreq <- length(freq)
   psd <- array(dim = c(nfreq, nc, ntrials))
-  
+
   for (i in 1:ntrials) {
-    psd[,,i] <- pwelch(x[trials[[i]],], fs = fs, 
-                       window = winlen, overlap = overlap)$spec[keep,]
-  } 
+    # drop = FALSE / as.matrix keep the single-channel spectrum 2-D.
+    spec <- as.matrix(pwelch(x[trials[[i]], , drop = FALSE], fs = fs,
+                             window = winlen, overlap = overlap)$spec)
+    psd[, , i] <- spec[keep, , drop = FALSE]
+  }
   # Score each (frequency, channel) bin by correlation with trial labels.
   dB <- log10(psd)
   score <- apply(dB, 1:2, function(v) suppressWarnings(stats::cor(v, y, use = "complete.obs")))

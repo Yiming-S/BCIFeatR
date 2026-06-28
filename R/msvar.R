@@ -99,6 +99,9 @@ msvar_train <- function(x, y, M = 2L, p = 1L,
   if (length(y) != length(x)) stop("length(y) must equal the number of trials.")
   if (anyNA(y)) stop("`y` contains NA labels.")
   M <- as.integer(M); p <- as.integer(p)
+  if (!is.finite(M) || M < 2L) {
+    stop("`M` (number of regimes) must be an integer >= 2 (M = 1 is not supported).")
+  }
   con <- modifyList(
     list(maxit = 10L, tol = 1e-5, verbose = FALSE, init = "conditional"),
     if (is.null(control)) list() else control
@@ -108,6 +111,12 @@ msvar_train <- function(x, y, M = 2L, p = 1L,
   y <- factor(y)
   classes <- levels(y)
   if (length(classes) < 2L) stop("MSVAR requires at least two classes in `y`.")
+  # Per-class regime clustering (k-means with M centers) needs >= 2 trials/class.
+  counts <- table(y)
+  if (any(counts < 2L)) {
+    stop(sprintf("MSVAR needs at least 2 trials per class; class(es) %s have fewer.",
+                 paste(names(counts)[counts < 2L], collapse = ", ")))
+  }
   models <- lapply(classes, function(cl) {
     .train_msvar(x[which(y == cl)], M = M, p = p, control = con)$theta
   })

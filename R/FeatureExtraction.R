@@ -22,6 +22,52 @@
   lapply(trials, function(M) as.matrix(M)[, ch, drop = FALSE])
 }
 
+#' Filter-bank CSP feature extraction with the per-band band-pass applied.
+#'
+#' Canonical FBCSP/FBCSSP band-pass each trial to band b BEFORE applying that
+#' band's spatial filter; this helper does exactly that at both train and test
+#' time (the earlier path projected the broadband trial, discarding the band
+#' selectivity the filters were trained for). For FBCSP (`mode = "concat"`) the
+#' per-band log-variances are concatenated; for FBCSSP (`mode = "sum"`) the
+#' per-band projections (whose filters already fold in the second stage) are
+#' summed before a single log-variance, which is algebraically the two-stage
+#' projection.
+#'
+#' @param trials List of trial matrices.
+#' @param filters List of per-band spatial filters.
+#' @param fs Sampling rate (Hz).
+#' @param frequency_bands List of `c(low, high)` bands.
+#' @param order Butterworth order (matches the filters' training order, 3).
+#' @param channels Channel subset used at training, or NULL.
+#' @param mode `"concat"` (FBCSP) or `"sum"` (FBCSSP).
+#' @return Numeric feature matrix (`n_trials x n_features`).
+#' @keywords internal
+.csp_bank_features <- function(trials, filters, fs, frequency_bands, order,
+                               channels, mode) {
+  trials <- .apply_channel_subset(trials, channels)
+  bank <- build_bandpass_bank(fs, frequency_bands, order)
+  nb <- length(filters)
+  if (identical(mode, "concat")) {
+    nf <- sum(vapply(filters, ncol, integer(1)))
+    t(vapply(trials, function(M) {
+      M <- as.matrix(M)
+      unlist(lapply(seq_len(nb), function(b) {
+        proj <- gsignal::filtfilt(bank[[b]], M) %*% filters[[b]]
+        log(pmax(.col_vars(proj), 1e-16))
+      }))
+    }, numeric(nf)))
+  } else {
+    nf <- ncol(filters[[1]])
+    t(vapply(trials, function(M) {
+      M <- as.matrix(M)
+      acc <- Reduce(`+`, lapply(seq_len(nb), function(b) {
+        gsignal::filtfilt(bank[[b]], M) %*% filters[[b]]
+      }))
+      log(pmax(.col_vars(acc), 1e-16))
+    }, numeric(nf)))
+  }
+}
+
 #' Apply second-stage CSP projection when provided.
 #'
 #' @param filtered_trials List of trial matrices after first-stage filtering.
@@ -204,8 +250,8 @@
   } else if (feature == "MSVAR") {
     if (is.null(params$M)) params$M <- 2L
     if (is.null(params$p)) params$p <- 1L
-    if (!.is_positive_intish_scalar(params$M)) {
-      stop("`params$M` (regimes) must be a positive integer for MSVAR.")
+    if (!.is_positive_intish_scalar(params$M) || params$M < 2) {
+      stop("`params$M` (regimes) must be an integer >= 2 for MSVAR.")
     }
     if (!.is_positive_intish_scalar(params$p)) {
       stop("`params$p` (VAR order) must be a positive integer for MSVAR.")
@@ -619,15 +665,15 @@ featEx4Train <- function(x, y, feature,
         csp_type = feature,
         ncomps = ncomps
       )
-      # When a channel subset is requested, the learned spatial filters have one
-      # row per selected channel, so the trials must be subset to match before
-      # projection (otherwise apply_csp_filters() is non-conformable).
-      x_for_csp <- .apply_channel_subset(session_x_proc, ch)
-      filt <- apply_csp_filters(x_for_csp, csp_info$filter)
-      filt <- .apply_optional_filter2(filt, csp_info$filter2)
-      feats <- extract_logvar_features(filt)
-      obj <- csp_info
-      obj$channels <- ch
+      # Apply the per-band band-pass before each band's spatial filter (canonical
+      # FBCSP/FBCSSP), at both train and test, via the shared helper.
+      order <- 3L
+      mode  <- if (feature == "FBCSP") "concat" else "sum"
+      feats <- .csp_bank_features(session_x_proc, csp_info$filter, fs,
+                                  frequency_bands, order, ch, mode)
+      obj <- list(filter = csp_info$filter, fs = fs,
+                  frequency_bands = frequency_bands, order = order,
+                  channels = ch, mode = mode)
 
     } else if (feature == "TS") {
       cov_type_ts <- if (is.null(params$cov_type)) "oas" else tolower(params$cov_type)
@@ -813,11 +859,11 @@ featEx4Test <- function(x, object,
     feats <- log_var(proj)
 
   } else if (feature == "FBCSP" || feature == "FBCSSP") {
-    # Apply the same channel subset used at train time before projection.
-    x_for_csp <- .apply_channel_subset(x_proc, object$channels)
-    sig <- apply_csp_filters(x_for_csp, object$filter)
-    sig <- .apply_optional_filter2(sig, object$filter2)
-    feats <- extract_logvar_features(sig)
+    # Band-pass each trial per band, then apply the stored per-band filters
+    # (identical to the train-time computation).
+    feats <- .csp_bank_features(x_proc, object$filter, object$fs,
+                                object$frequency_bands, object$order,
+                                object$channels, object$mode)
 
   } else if (feature == "TS") {
     cov_fun <- .resolve_cov_fun(if (is.null(object$cov_type)) "oas" else object$cov_type)

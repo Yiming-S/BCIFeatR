@@ -40,7 +40,12 @@ mibif <- function(data_list, labels, k = 0.3, method = 'combine', num_random = N
     data_list <- data_list[selected_indices]
     labels <- labels[selected_indices]
   }
-  class_vector <- unlist(mapply(rep, labels, sapply(data_list, nrow)))
+  # Expand session-level labels to one label per row. `rep(times = ...)` always
+  # yields a plain vector; the previous `unlist(mapply(rep, ...))` collapsed to a
+  # matrix when all sessions had equal row counts (the balanced design), which
+  # `infotheo::discretize()` then mis-shaped, silently zeroing every mutual
+  # information and selecting arbitrary (first) features.
+  class_vector <- rep(labels, times = vapply(data_list, nrow, integer(1)))
   combined_data <- do.call(rbind, data_list)
 
   k <- ceiling(ncol(combined_data) * k)
@@ -94,7 +99,11 @@ pca <- function(data_list, k = 0.9, method = 'combine', num_random = NULL) {
     data_list <- data_list[selected_indices]
   }
   combined_data <- do.call(rbind, data_list)
-  pca_result <- prcomp(combined_data, center = TRUE, scale. = TRUE)
+  # Floor zero-variance columns so prcomp(scale. = TRUE) does not error on a
+  # constant/dead feature (common with sparse ATM / connectivity features).
+  scalev <- apply(combined_data, 2, stats::sd)
+  scalev[!is.finite(scalev) | scalev <= 0] <- 1
+  pca_result <- prcomp(combined_data, center = TRUE, scale. = scalev)
   num_components <- min(ncol(pca_result$x), max(1L, ceiling(ncol(pca_result$x) * k)))
   variances <- pca_result$sdev^2
   sorted_indices <- order(variances, decreasing = TRUE)
@@ -179,7 +188,14 @@ fisher <- function(data_list, labels, k = 0.9, method = 'combine',
   } else {
     stop("`labels` must be either session-level (length(data_list)) or sample-level (sum(nrow(data_list))).")
   }
-  data_standardized <- scale(data, center, scale)
+  # Standardize with a floored scale so a constant/zero-variance column does not
+  # crash (base scale() divides by a zero sd and yields NaN).
+  data_standardized <- if (isTRUE(center)) sweep(data, 2, colMeans(data), "-") else data
+  if (isTRUE(scale)) {
+    scv <- apply(data_standardized, 2, stats::sd)
+    scv[!is.finite(scv) | scv <= 0] <- 1
+    data_standardized <- sweep(data_standardized, 2, scv, "/")
+  }
   pca_result <- prcomp(data_standardized)
   num_components <- min(ncol(pca_result$x), max(1L, ceiling(ncol(pca_result$x) * k)))
   variance_explained <- pca_result$sdev^2 / sum(pca_result$sdev^2)

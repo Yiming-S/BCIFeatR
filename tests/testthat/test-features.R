@@ -288,41 +288,65 @@ test_that("vectorized atmCounts matches the reference double loop", {
   expect_equal(unname(got$countI), as.numeric(ci))
 })
 
-test_that("mibif matches the reference greedy max-relevance selection", {
+test_that("mibif selects the discriminative feature on BALANCED sessions", {
   skip_if_not_installed("infotheo")
   set.seed(11)
-  n <- 30L
-  mk <- function(shift) {
+  mk <- function(shift, n = 30L) {           # n equal across sessions = balanced
     M <- matrix(rnorm(n * 5), n, 5)
-    M[, 2] <- M[, 2] + shift * 3
-    M[, 4] <- M[, 4] + shift * 2
+    M[, 5] <- M[, 5] + shift * 4             # feature 5 carries the class signal
     colnames(M) <- paste0("f", 1:5)
     M
   }
-  data_list <- lapply(c(0, 1, 2), mk)
+  data_list <- list(mk(0), mk(1), mk(2))     # equal row counts (the bug regime)
   labs <- c(1L, 2L, 3L)
 
-  # Reference: the original per-iteration greedy max-relevance loop. The fast
-  # path computes each feature's MI once instead, which must give the same rank.
-  cv <- unlist(mapply(rep, labs, vapply(data_list, nrow, integer(1))))
-  cd <- do.call(rbind, data_list)
-  k  <- min(ceiling(ncol(cd) * 0.4), ncol(cd))
-  cm <- function(f) infotheo::mutinformation(infotheo::discretize(f),
-                                             infotheo::discretize(cv))
-  sel <- logical(ncol(cd)); ref <- integer(0)
-  while (length(ref) < k) {
-    mv <- vapply(seq_len(ncol(cd)),
-                 function(i) if (sel[i]) -Inf else cm(cd[, i]), numeric(1))
-    b <- which.max(mv); sel[b] <- TRUE; ref <- c(ref, b)
-  }
+  res <- mibif(data_list, labels = labs, k = 1 / 5)   # pick the single best feature
+  expect_equal(length(res$selected_indices), 1L)
+  expect_equal(res$selected_indices, 5L)            # was index 1 (noise) before fix
+  expect_equal(colnames(res$selected_features), "f5")
 
-  res <- mibif(data_list, labels = labs, k = 0.4)
-  expect_equal(res$selected_indices, ref)
-  expect_equal(length(res$selected_indices), k)
-  expect_equal(colnames(res$selected_features), colnames(cd)[res$selected_indices])
-  # method = "combine" is deterministic.
-  expect_equal(mibif(data_list, labels = labs, k = 0.4)$selected_indices,
-               res$selected_indices)
+  # Correct class-vector flattening yields a plain vector (not a matrix).
+  cv <- rep(labs, times = vapply(data_list, nrow, integer(1)))
+  expect_null(dim(cv))
+  expect_length(cv, 90L)
+
+  # Unbalanced sessions (which happened to work before) still work.
+  res2 <- mibif(list(mk(0, 28), mk(1, 30), mk(2, 32)), labels = labs, k = 1 / 5)
+  expect_equal(res2$selected_indices, 5L)
+})
+
+test_that("FBCSP/FBCSSP band-pass at feature time (narrow-band signal recovered)", {
+  # Weak 10 Hz (8-13) discriminative signal + strong 22 Hz class-independent
+  # nuisance: broadband projection collapses to chance, band-passed recovers it.
+  fs <- 128L; L <- 256L; C <- 8L
+  gen <- function(n, seed) {
+    set.seed(12345L); Mix <- matrix(rnorm(C * C, sd = 0.15), C, C); diag(Mix) <- 1
+    set.seed(seed); y <- factor(rep(c("L", "R"), each = n))
+    tvec <- seq(0, (L - 1) / fs, length.out = L)
+    x <- lapply(seq_len(2 * n), function(i) {
+      S <- matrix(rnorm(L * C, sd = 1.5), L, C)
+      if (y[i] == "L") S[, 1] <- S[, 1] + 0.5 * sin(2 * pi * 10 * tvec)
+      else            S[, 2] <- S[, 2] + 0.5 * sin(2 * pi * 10 * tvec)
+      ch <- sample(C, 1); S[, ch] <- S[, ch] + 2.5 * sin(2 * pi * 22 * tvec + runif(1))
+      S %*% t(Mix)
+    })
+    list(x = x, y = y)
+  }
+  acc <- function(feat) {
+    tr <- gen(40, 1); te <- gen(60, 2)
+    p <- list(fs = fs, channels = 1:C, frequency_bands = list(c(8, 13), c(13, 20)), ncomps = 3L)
+    fit <- featEx4Train(tr$x, tr$y, feat, p)
+    xte <- featEx4Test(te$x, fit$object, feat)
+    # nearest-centroid on z-scored features (classifier-agnostic check)
+    mu <- colMeans(fit$features); sdv <- apply(fit$features, 2, sd); sdv[sdv <= 0] <- 1
+    Z  <- scale(fit$features, mu, sdv); Zt <- scale(xte, mu, sdv)
+    cen <- t(sapply(split(as.data.frame(Z), tr$y), colMeans))
+    d <- sapply(seq_len(nrow(Zt)), function(i)
+      which.min(rowSums((cen - matrix(Zt[i, ], nrow(cen), ncol(cen), byrow = TRUE))^2)))
+    mean(rownames(cen)[d] == as.character(te$y))
+  }
+  expect_gt(acc("FBCSP"), 0.7)    # broadband-apply scored ~0.5 (chance) before fix
+  expect_gt(acc("FBCSSP"), 0.7)
 })
 
 test_that("splitTimeRange segments by label runs and fixed windows", {

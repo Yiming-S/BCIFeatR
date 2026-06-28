@@ -1,3 +1,25 @@
+# BCIFeatR 0.3.2
+
+Correctness release from a second deep review.
+
+## Bug fixes
+
+* **FBCSP / FBCSSP now band-pass each trial per band at feature-extraction
+  time.** Previously the per-band spatial filters (learned on band-passed data)
+  were applied to the *broadband* trial, discarding band selectivity; on a weak
+  narrow-band signal with strong out-of-band nuisance this collapsed accuracy to
+  chance (~0.54 vs ~0.85 once fixed). Note: FBCSP/FBCSSP feature *values* change
+  (to the correct ones).
+* **`mibif()` no longer silently mis-selects features on balanced designs.**
+  With equal rows per session the class vector collapsed to a matrix, which
+  `infotheo::discretize()` mis-shaped, zeroing every mutual information and
+  returning arbitrary (first) features. Fixed the row-label expansion.
+* `pca()` and `fisher()` no longer crash on a constant/zero-variance column
+  (e.g. sparse ATM features); the scale is floored as in `logvar_pca`.
+* `msvar_train()` validates `M >= 2` and requires at least two trials per class,
+  with clear messages instead of cryptic dimension/k-means errors.
+* `freqBandSelect()` no longer crashes on single-channel input.
+
 # BCIFeatR 0.3.1
 
 Polish release from an internal improvement review (bug fixes, performance,
