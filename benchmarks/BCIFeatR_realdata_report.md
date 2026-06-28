@@ -140,13 +140,16 @@ B04 very easy (≈0.95), B03 near chance (≈0.5–0.58) — the well-known BNCI
 3. **MDM is a strong, tuning-free baseline** (0.78 on Zhou, 0.73 on BNCI) — competitive
    with CSP+LDA while needing no downstream classifier.
 
-4. **`CSP → MSVAR` is the one fragile path.** It runs on 14-channel Zhou2016 (0.69) but
-   on 3-channel BNCI, CSP yields only 3 components and the per-trial AR fits feeding
-   MSVAR's k-means initialization become near-degenerate, so `kmeans()` aborts with
-   *"infinite or missing values in 'x'"* for 7/9 subjects. This is a real robustness gap
-   (cryptic failure rather than a graceful fallback), not a result — recommend sanitizing
-   non-finite per-trial A-matrices before clustering, or a clear diagnostic. The other 10
-   methods completed for **every** subject/fold without error.
+4. **`CSP → MSVAR` exposed (and now fixed) an MSVAR robustness bug.** It runs on
+   14-channel Zhou2016 (0.69), but on 3-channel BNCI, CSP yields only 3 components and a
+   regime in the M=2 model collapses; the EM M-step then divided by a zero responsibility
+   total, producing `NaN` sufficient statistics that aborted `kmeans()`/`svd()` with
+   *"infinite or missing values in 'x'"* for 7/9 subjects. **Fixed in v0.3.4** (the M-step
+   floors responsibility totals, falls back to a benign `A = 0, Q = I` empty-regime
+   update, keeps seed covariances SPD, and guards k-means). MSVAR now runs for **every**
+   subject; on this 3-channel data it degrades gracefully to ~chance (0.50–0.64) — there
+   is little regime-switching dynamics for it to exploit after CSP — rather than erroring.
+   The other 10 methods completed for every subject/fold throughout.
 
 5. **Timing** (mean per fold, feature extraction + LDA): Zhou2016 ≈ 15 s, BNCI ≈ 6 s.
    On Zhou the cost is dominated by the per-band zero-phase filtering in `FBCSP` (≈8.6 s)

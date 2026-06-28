@@ -212,6 +212,7 @@ M_var <- function(Ms, sum_MCP, sum_MP, sum_MPb, sum_Ms2, xbar, ybar,
                      error = function(e) NULL)
       if (is.null(Aj) || any(is.nan(Aj) | is.infinite(Aj)))
         Aj <- sum_MCP[, , j] %*% .ginv(sum_MPb[, , j])
+      Aj[!is.finite(Aj)] <- 0          # empty/degenerate regime -> zero coefficients
       A[, , j] <- Aj
     }
     Abig <- matrix(0, n * p, n * p)
@@ -238,7 +239,7 @@ M_var <- function(Ms, sum_MCP, sum_MP, sum_MPb, sum_Ms2, xbar, ybar,
     Q <- array(0, dim = c(n, n, M))
     sum_M <- colSums(Ms[(p + 1):tt, ])
     for (j in 1:M) {
-      if (sum_M[j] == 0) { Q[, , j] <- diag(n); next }
+      if (!is.finite(sum_M[j]) || sum_M[j] <= 1e-12) { Q[, , j] <- diag(n); next }
       Aj <- A[, , j]
       Qj <- (sum_MP[, , j] - tcrossprod(sum_MCP[, , j], Aj) -
                tcrossprod(Aj, sum_MCP[, , j]) +
@@ -553,8 +554,12 @@ fit_msvar <- function(y, M, p = 1, theta = NULL, control = list()) {
     if (LLflag == 5) break
 
     sum_Ms <- colSums(Ms[(p + 1):tt, ])
-    xbar <- crossprod(X, Ms[(p + 1):tt, ]) / matrix(sum_Ms, n * p, M, byrow = TRUE)
-    ybar <- crossprod(y[(p + 1):tt, ], Ms[(p + 1):tt, ]) / matrix(sum_Ms, n, M, byrow = TRUE)
+    # Floor the responsibility totals so an empty/collapsed regime (sum_Ms[j] ~ 0)
+    # does not produce NaN means; the resulting sufficient statistics then vanish
+    # for that regime and M_var falls back to a benign (A = 0, Q = I) update.
+    sum_Ms_div <- pmax(sum_Ms, .Machine$double.eps)
+    xbar <- crossprod(X, Ms[(p + 1):tt, ]) / matrix(sum_Ms_div, n * p, M, byrow = TRUE)
+    ybar <- crossprod(y[(p + 1):tt, ], Ms[(p + 1):tt, ]) / matrix(sum_Ms_div, n, M, byrow = TRUE)
     for (j in 1:M) {
       sqrtwj <- sqrt(Ms[(p + 1):tt, j])
       Xj <- X * sqrtwj
@@ -563,6 +568,11 @@ fit_msvar <- function(y, M, p = 1, theta = NULL, control = list()) {
       sum_MPb[, , j] <- crossprod(Xj) - sum_Ms[j] * tcrossprod(xbar[, j])
       sum_MCP[, , j] <- crossprod(yj, Xj) - sum_Ms[j] * tcrossprod(ybar[, j], xbar[, j])
     }
+    # Defensive: never hand non-finite statistics to the M-step solver.
+    xbar[!is.finite(xbar)] <- 0; ybar[!is.finite(ybar)] <- 0
+    sum_MP[!is.finite(sum_MP)] <- 0
+    sum_MPb[!is.finite(sum_MPb)] <- 0
+    sum_MCP[!is.finite(sum_MCP)] <- 0
     theta <- M_var(Ms, sum_MCP, sum_MP, sum_MPb, sum_Ms2, xbar, ybar,
                    theta, fixed, init, verbose)
   }
@@ -684,12 +694,17 @@ fit_msvar_multi <- function(y, M, p, theta, control = list(),
       }
     }
     for (j in 1:M) {
-      xbar[, j] <- xbar[, j] / sum_Ms[j]
-      ybar[, j] <- ybar[, j] / sum_Ms[j]
+      denom <- max(sum_Ms[j], .Machine$double.eps)   # guard empty/collapsed regimes
+      xbar[, j] <- xbar[, j] / denom
+      ybar[, j] <- ybar[, j] / denom
       sum_MP[, , j] <- sum_MP[, , j] - sum_Ms[j] * tcrossprod(ybar[, j])
       sum_MPb[, , j] <- sum_MPb[, , j] - sum_Ms[j] * tcrossprod(xbar[, j])
       sum_MCP[, , j] <- sum_MCP[, , j] - sum_Ms[j] * tcrossprod(ybar[, j], xbar[, j])
     }
+    xbar[!is.finite(xbar)] <- 0; ybar[!is.finite(ybar)] <- 0
+    sum_MP[!is.finite(sum_MP)] <- 0
+    sum_MPb[!is.finite(sum_MPb)] <- 0
+    sum_MCP[!is.finite(sum_MCP)] <- 0
 
     Ms <- matrix(0, p + 2, M)
     Ms[p + 1, ] <- sum_Ms
@@ -734,16 +749,28 @@ fit_msvar_multi <- function(y, M, p, theta, control = list(),
   mu_tmp <- unlist(lapply(fit0, function(z) z$theta$mu))
   dim(mu_tmp) <- c(n_channels, M * ni)
 
+  # Defensive sanitize: a near-degenerate trial could still yield non-finite AR
+  # estimates; replace them so the k-means seeding never sees Inf/NaN.
+  A_tmp[!is.finite(A_tmp)] <- 0
+  Q_tmp[!is.finite(Q_tmp)] <- 0
+  mu_tmp[!is.finite(mu_tmp)] <- 0
   A_reshaped <- matrix(A_tmp, nrow = n_channels * n_channels * p, ncol = M * ni)
-  km <- kmeans(t(A_reshaped), centers = M)
+  # If clustering is infeasible (too few distinct points), seed clusters cyclically.
+  km <- tryCatch(kmeans(t(A_reshaped), centers = M),
+                 error = function(e) list(cluster = rep_len(seq_len(M), M * ni)))
 
   A_clustered <- array(0, c(n_channels, n_channels, p, M))
   Q_clustered <- array(0, c(n_channels, n_channels, M))
   mu_clustered <- matrix(0, n_channels, M)
   for (m in 1:M) {
     ci <- which(km$cluster == m)
+    if (!length(ci)) ci <- seq_len(M * ni)        # never average an empty cluster
     A_clustered[, , , m] <- apply(A_tmp[, , , ci, drop = FALSE], c(1, 2, 3), mean)
-    Q_clustered[, , m] <- apply(Q_tmp[, , ci, drop = FALSE], c(1, 2), mean)
+    Qm <- apply(Q_tmp[, , ci, drop = FALSE], c(1, 2), mean)
+    Qm <- (Qm + t(Qm)) / 2
+    eg <- eigen(Qm, symmetric = TRUE)
+    Qm <- eg$vectors %*% (pmax(eg$values, 1e-8) * t(eg$vectors))   # keep SPD for chol()
+    Q_clustered[, , m] <- (Qm + t(Qm)) / 2
     mu_clustered[, m] <- rowMeans(mu_tmp[, ci, drop = FALSE])
   }
 

@@ -692,3 +692,23 @@ test_that("freqBandSelect by_label=FALSE (fixed-window) path runs", {
   expect_true(all(is.finite(fsel$freqrange)))
   expect_true(length(fsel$trials) >= 2L)
 })
+
+test_that("MSVAR is robust to degenerate / regime-collapsing low-dim input", {
+  # Near-collinear, narrow-band 3-channel trials (low effective rank) make the
+  # M=2 regimes collapse -- the case that crashed CSP->MSVAR on 3-channel data
+  # (empty-regime division -> NaN sufficient stats -> kmeans/svd error).
+  set.seed(1); n <- 16L; T <- 200L
+  x <- lapply(seq_len(n), function(i) {
+    t <- seq(0, 1, length.out = T); s <- sin(2 * pi * 10 * t)
+    cbind(s, s, s) * matrix(rep(c(1, 0.98, 1.02), each = T), T, 3) +
+      matrix(rnorm(T * 3, sd = 0.02), T, 3)
+  })
+  y <- factor(rep(c("a", "b"), length.out = n))
+  expect_error(
+    m <- msvar_train(x, y, M = 2L, p = 1L, seed = 1L,
+                     control = list(maxit = 8L, nseg = 15L)),
+    NA)                                          # must not error
+  pr <- msvar_predict(m, x)
+  expect_true(is.factor(pr$y_hat))
+  expect_false(anyNA(pr$loglik))
+})

@@ -1,3 +1,18 @@
+# BCIFeatR 0.3.4
+
+Robustness fix from real-data testing (zhou2016, BNCI2014-004).
+
+* The MSVAR EM no longer crashes on degenerate / low-dimensional inputs. When a
+  regime collapses (zero responsibility) the M-step previously divided by zero,
+  producing `NaN` sufficient statistics that aborted `kmeans()`/`svd()` with
+  "infinite or missing values in 'x'" — this hit `CSP -> MSVAR` on the
+  3-channel BNCI2014-004 data (7/9 subjects). The M-step now floors the
+  responsibility totals, sanitizes non-finite statistics, falls back to a benign
+  `A = 0, Q = I` update for empty regimes, keeps cluster-seed covariances SPD,
+  and guards the k-means seeding. MSVAR now runs on every subject (it degrades
+  gracefully to chance on data with no usable regime dynamics rather than
+  erroring). Well-conditioned fits are numerically unchanged.
+
 # BCIFeatR 0.3.3
 
 Documentation and release-hygiene polish (no code-behavior changes).
