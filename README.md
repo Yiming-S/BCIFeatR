@@ -83,6 +83,41 @@ multi_fit <- featEx4Train(
 # Returns a list of per-session results
 ```
 
+### Classifiers
+
+```r
+# Riemannian Minimum Distance to Mean (operates on raw trials)
+mdm  <- mdm_train(x_train, y_train, metric = "logeuclid")
+pred <- mdm_predict(mdm, x_test)$y_hat
+
+# Markov-switching VAR generative classifier (strongest on low-dimensional,
+# e.g. CSP-projected, trials; argmax of the per-class trial log-likelihood)
+msv  <- msvar_train(x_train, y_train, M = 2L, p = 1L, seed = 1L)
+out  <- msvar_predict(msv, x_test)   # out$y_hat (labels), out$loglik (scores)
+```
+
+### Multi-view fusion (MCCA)
+
+```r
+# Align several feature views (rows = the same trials) into shared components
+V1 <- featEx4Train(x_train, y_train, "logvar", list())$features
+V2 <- featEx4Train(x_train, y_train, "bandpower",
+                   list(fs = 250, frequency_bands = list(c(8, 13), c(13, 30))))$features
+mc          <- mcca_train(list(V1, V2), ncomp = 4L)
+fused_train <- mcca_transform(mc, list(V1, V2))$consensus
+```
+
+### Preprocessing & attention
+
+```r
+# Channel preprocessing (none/center/scale/whiten) and optional parameter-free
+# SimAM attention re-weighting apply before any feature, via `params`:
+fit <- featEx4Train(x_train, y_train, "TS",
+                    params = list(cov_type   = "oas",
+                                  preprocess = "whiten",
+                                  simam      = "vanilla"))
+```
+
 ## Data format
 
 - **Trials** (`x`): A list of numeric matrices, each `samples × channels`.
@@ -100,6 +135,16 @@ multi_fit <- featEx4Train(
 ```r
 devtools::test()
 ```
+
+## References
+
+The Markov-switching VAR engine behind the `MSVAR` feature and the
+`msvar_train()` / `msvar_predict()` classifier is adapted from the Degras Lab
+`msvar` implementation:
+
+> Degras, D., Ting, C.-M., & Ombao, H. (2022). Markov-switching state-space
+> models with applications to neuroimaging. *Computational Statistics & Data
+> Analysis*.
 
 ## License
 
