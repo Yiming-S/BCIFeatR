@@ -6,6 +6,9 @@
 #'
 #' @param x Numeric matrix (`samples x variables`).
 #' @return Symmetric positive semi-definite covariance estimate.
+#' @examples
+#' S <- LW_covariance(matrix(rnorm(200 * 5), 200, 5))
+#' dim(S)
 #' @export
 LW_covariance <- function(x) {
   x <- as.matrix(x)

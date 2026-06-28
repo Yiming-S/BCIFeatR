@@ -24,3 +24,8 @@ first-difference variance to the signal variance, and complexity the ratio of
 the first-difference mobility to the signal mobility. Variance ratios are
 floored by \code{epsilon} so degenerate (flat) channels stay finite.
 }
+\examples{
+x <- lapply(1:6, function(i) matrix(rnorm(256 * 4), 256, 4))
+hj <- hjorth_parameters(x)
+dim(hj)
+}

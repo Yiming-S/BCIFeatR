@@ -27,6 +27,12 @@ innovation covariance, and mean of a multivariate series, with a
 pseudo-inverse fallback for rank-deficient designs and an eigenvalue floor on
 the innovation covariance.
 }
+\examples{
+set.seed(1)
+y <- matrix(rnorm(500 * 2), 500, 2)
+fit <- fit_var(y, p = 1)
+fit$theta$A
+}
 \references{
 D. Degras, C.-M. Ting, H. Ombao (2022). Markov-switching
 state-space models with applications to neuroimaging. CSDA.

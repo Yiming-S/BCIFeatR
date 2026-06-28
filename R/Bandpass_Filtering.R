@@ -46,6 +46,9 @@ freqBank <- function(eeg, fs, order = 3,
 #'   `seglen`.
 #' @param seglen Window length in samples; required when `by_label = FALSE`.
 #' @return A list of integer index vectors, one per trial.
+#' @examples
+#' labels <- c(rep(1, 5), rep(2, 3), rep(1, 4))
+#' splitTimeRange(labels, by_label = TRUE)
 #' @export
 splitTimeRange <- function(labels, by_label = TRUE,
                            minlen = NULL, seglen = NULL) {

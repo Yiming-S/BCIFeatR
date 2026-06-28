@@ -87,13 +87,15 @@ multi_fit <- featEx4Train(
 
 ```r
 # Riemannian Minimum Distance to Mean (operates on raw trials)
-mdm  <- mdm_train(x_train, y_train, metric = "logeuclid")
-pred <- mdm_predict(mdm, x_test)$y_hat
+mdm   <- mdm_train(x_train, y_train, metric = "logeuclid")
+y_hat <- predict(mdm, x_test)                  # class factor
+dists <- predict(mdm, x_test, type = "distance")
 
 # Markov-switching VAR generative classifier (strongest on low-dimensional,
 # e.g. CSP-projected, trials; argmax of the per-class trial log-likelihood)
-msv  <- msvar_train(x_train, y_train, M = 2L, p = 1L, seed = 1L)
-out  <- msvar_predict(msv, x_test)   # out$y_hat (labels), out$loglik (scores)
+msv   <- msvar_train(x_train, y_train, M = 2L, p = 1L, seed = 1L)
+y_hat <- predict(msv, x_test)                  # class factor
+ll    <- predict(msv, x_test, type = "loglik") # per-class log-likelihoods
 ```
 
 ### Multi-view fusion (MCCA)

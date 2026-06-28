@@ -30,7 +30,8 @@ feat_ex_train(
 
 \item{y}{Labels aligned with \code{x}; can be NULL only for ATM.}
 
-\item{feature}{One of logvar/logvar_pca/CSP/FBCSP/FBCSSP/TS/ACM_TS/Riemannian/ATM.}
+\item{feature}{One of logvar/logvar_pca/CSP/FBCSP/FBCSSP/TS/ACM_TS/Riemannian/
+ATM/bandpower/Hjorth/MVAR/MSVAR.}
 
 \item{params}{Feature-specific parameter list. For SPD-based features (\code{TS},
 \code{ACM_TS}, \code{Riemannian}) the optional field \code{params$metric} selects the
@@ -54,4 +55,12 @@ List with \code{features} matrix and \code{object}; or list of such results for 
 Supports both trial-list input (\code{x} is list of matrices) and session-list input
 (\code{x} is list of trial lists). Returns train-time state required to reproduce the
 same transform in \code{featEx4Test}.
+}
+\examples{
+set.seed(1)
+x <- lapply(1:8, function(i) matrix(rnorm(128 * 4), 128, 4))
+y <- factor(rep(c("L", "R"), each = 4))
+fit <- featEx4Train(x, y, feature = "CSP", params = list(ncomps = 2L))
+X_train <- fit$features
+X_test  <- featEx4Test(x, fit$object, feature = "CSP")
 }

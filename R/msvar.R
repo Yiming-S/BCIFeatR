@@ -82,6 +82,15 @@
 #' @references D. Degras, C.-M. Ting, H. Ombao (2022). Markov-switching
 #'   state-space models with applications to neuroimaging. CSDA.
 #' @seealso [msvar_predict()]
+#' @examples
+#' \donttest{
+#' set.seed(1)
+#' x <- lapply(1:12, function(i) matrix(rnorm(200 * 3), 200, 3))
+#' y <- factor(rep(c("a", "b"), each = 6))
+#' m <- msvar_train(x, y, M = 2L, p = 1L, seed = 1L,
+#'                  control = list(maxit = 5L, nseg = 15L))
+#' predict(m, x)
+#' }
 #' @export
 msvar_train <- function(x, y, M = 2L, p = 1L,
                         control = list(maxit = 10L, tol = 1e-5, init = "conditional"),
@@ -130,4 +139,30 @@ msvar_predict <- function(model, x) {
   y_hat <- factor(model$classes[max.col(LL, ties.method = "first")],
                   levels = model$classes)
   list(y_hat = y_hat, loglik = LL)
+}
+
+#' Predict method for MSVAR classifiers.
+#'
+#' @param object An `"msvar"` object from [msvar_train()].
+#' @param x Trial list or a single trial matrix.
+#' @param type `"class"` for the predicted-class factor (default) or
+#'   `"loglik"` for the trial-by-class log-likelihood matrix.
+#' @param ... Unused.
+#' @return A factor of class labels, or the log-likelihood matrix when
+#'   `type = "loglik"`.
+#' @seealso [msvar_train()], [msvar_predict()]
+#' @export
+predict.msvar <- function(object, x, type = c("class", "loglik"), ...) {
+  type <- match.arg(type)
+  res <- msvar_predict(object, x)
+  if (type == "loglik") res$loglik else res$y_hat
+}
+
+#' @export
+print.msvar <- function(x, ...) {
+  cat(sprintf("Markov-switching VAR classifier (M = %d regimes, p = %d)\n",
+              x$M, x$p))
+  cat(sprintf("  %d classes: %s\n", length(x$classes),
+              paste(x$classes, collapse = ", ")))
+  invisible(x)
 }

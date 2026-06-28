@@ -12,13 +12,15 @@ mdm_predict(model, x)
 \item{x}{Trial list or a single trial matrix.}
 }
 \value{
-A factor of predicted classes (levels match the training classes).
-The trial-by-class Riemannian distance matrix is attached as attribute
-\code{"distances"}.
+A factor of predicted classes (levels match the training classes),
+with the trial-by-class distance matrix attached as attribute \code{"distances"}.
+See also the \code{\link[=predict.mdm]{predict.mdm()}} S3 method.
 }
 \description{
-Predict class labels with a trained MDM classifier.
+Assigns each trial to the nearest class mean under the model's mean metric
+(Frobenius for \code{euclid}, log-Euclidean for \code{logeuclid}, affine-invariant for
+\code{riemann}), so the rule minimizes a single divergence for every metric.
 }
 \seealso{
-\code{\link[=mdm_train]{mdm_train()}}
+\code{\link[=mdm_train]{mdm_train()}}, \code{\link[=predict.mdm]{predict.mdm()}}
 }

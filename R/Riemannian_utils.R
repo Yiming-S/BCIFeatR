@@ -11,6 +11,11 @@
 #'   `"logeuclid"` (matrix-log arithmetic mean, closed form), or
 #'   `"riemann"` (affine-invariant Fréchet mean, iterative).
 #' @return SPD matrix representing the manifold mean.
+#' @examples
+#' set.seed(1)
+#' covs <- replicate(6, crossprod(matrix(rnorm(100 * 3), 100, 3)) / 100,
+#'                   simplify = FALSE)
+#' riemannian_mean(simplify2array(covs), metric = "logeuclid")
 #' @export
 riemannian_mean <- function(cov_matrices, max_iterations = 30, epsilon = 1e-5,
                             metric = c("euclid", "logeuclid", "riemann")) {

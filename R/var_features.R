@@ -18,6 +18,10 @@
 #' @return Numeric matrix (`n_trials x n_features`) with
 #'   `channels^2 * order` coefficient features (plus `channels` residual features
 #'   when `include_Q = TRUE`).
+#' @examples
+#' x <- lapply(1:6, function(i) matrix(rnorm(256 * 3), 256, 3))
+#' mv <- extract_mvar(x, order = 2L)
+#' dim(mv)
 #' @export
 extract_mvar <- function(data, order = 3, include_Q = TRUE) {
   if (!is.list(data) || length(data) == 0L) {

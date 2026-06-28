@@ -22,6 +22,10 @@
 #'   identical filters once per trial.
 #' @return Numeric matrix (`n_trials x (n_bands * n_channels)`) in band-major
 #'   order: all channels of band 1, then band 2, and so on.
+#' @examples
+#' x <- lapply(1:6, function(i) matrix(rnorm(256 * 4), 256, 4))
+#' bp <- extract_bandpower(x, fs = 128, frequency_bands = list(c(8, 13), c(13, 30)))
+#' dim(bp)
 #' @export
 extract_bandpower <- function(data, fs, frequency_bands,
                               order = 3, relative = FALSE, filters = NULL) {

@@ -23,6 +23,10 @@
 #'   reduces to vanilla). Ignored by `"vanilla"`.
 #' @param eps Numerical-stability constant.
 #' @return The re-weighted input, matching the input structure (matrix or list).
+#' @examples
+#' M <- matrix(rnorm(256 * 4), 256, 4)
+#' W <- simAM(M, method = "vanilla")
+#' dim(W)
 #' @export
 simAM <- function(x,
                   method = c("vanilla", "robust", "corr"),

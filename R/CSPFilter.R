@@ -63,13 +63,14 @@ multiclass_csp <- function(x, labels,
   # cov1 v = lambda cov2 v   ⇔   (U')^{-1} cov1 U^{-1} w = lambda w, v = U^{-1} w
   # where U is upper-tri with U'U = cov2. Avoids geigen() which is notably
   # slower on moderate p and drags in a heavy dependency on the CSP hot path.
+  # Each class mean covariance is reused across every OvO pair containing that
+  # class, so compute it once per class instead of (nclass-1) times.
+  class_means <- lapply(seq_len(nclass), function(c) calc_mean(which(labels == c)))
   for (k in 1:npairs) {
     i1 <- pairs[1, k]
     i2 <- pairs[2, k]
-    idx1 <- which(labels == i1)
-    idx2 <- which(labels == i2)
-    cov1 <- calc_mean(idx1)
-    cov2 <- calc_mean(idx2)
+    cov1 <- class_means[[i1]]
+    cov2 <- class_means[[i2]]
     C1 <- (cov1 + t(cov1)) / 2
     C2 <- (cov2 + t(cov2)) / 2
     U <- tryCatch(chol(C2), error = function(e) {

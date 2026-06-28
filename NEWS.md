@@ -1,0 +1,57 @@
+# BCIFeatR 0.3.1
+
+Polish release from an internal improvement review (bug fixes, performance,
+consistency, and packaging). No backward-incompatible changes.
+
+## Bug fixes
+
+* `FBCSP` / `FBCSSP` no longer error when a `channels` subset is supplied; the
+  subset is now applied consistently at train and test time.
+* `mdm_predict()` measures distance with the same geometry used to build the
+  class means (Frobenius for `euclid`, log-Euclidean for `logeuclid`,
+  affine-invariant for `riemann`), so the nearest-mean rule is coherent for
+  every metric (previously the distance was always affine-invariant).
+* The `Riemannian` tie-breaking jitter is now batch-invariant: a trial yields
+  the same features whether transformed alone or within a larger batch.
+* `logvar_pca` no longer crashes on a constant/dead channel.
+* `mdm_train(cov_type = "cov")` errors clearly on rank-deficient (p >= n) trials
+  instead of producing silent garbage; use `oas`/`lw` shrinkage instead.
+* SimAM's `robust` variant is auto-scaled to the data (consistent MAD), so its
+  default no longer collapses the signal; `lambda` is a scale-invariant relative
+  bandwidth.
+* The vendored MSVAR Viterbi decode now runs in log space (no underflow on long
+  trials); an uninitialized `LLflag` in the EM loop was fixed.
+
+## New
+
+* S3 `predict()` and `print()` methods for `mdm`, `msvar`, and `mcca` objects
+  (e.g. `predict(model, x)`, `predict(model, x, type = "distance"/"loglik")`).
+* Runnable `@examples` on the primary entry points; an `inst/CITATION`; a
+  `NEWS.md`; and a GitHub Actions R-CMD-check workflow.
+
+## Performance
+
+* ATM time-binning vectorized (~68x faster).
+* CSP class-mean covariances cached across one-vs-one pairs (~`nclass - 1`x,
+  multiplied per band in FBCSP).
+* `logvar_transform()` uses the vectorized column-variance helper (~4x faster).
+* `mdm_predict()` precomputes per-class quantities once instead of per trial.
+
+# BCIFeatR 0.3.0
+
+## New features
+
+* New dispatcher feature methods in `featEx4Train()` / `featEx4Test()`:
+  `bandpower` (per-channel log/relative band power), `Hjorth`
+  (activity/mobility/complexity), `MVAR` (vector-autoregression coefficients),
+  and `MSVAR` (per-class Markov-switching VAR log-likelihood).
+* New classifiers `mdm_train()` / `mdm_predict()` (Riemannian Minimum Distance
+  to Mean) and `msvar_train()` / `msvar_predict()` (generative Markov-switching
+  VAR).
+* New multi-view fusion `mcca_train()` / `mcca_transform()` (regularized SUMCOR
+  multiset CCA) and parameter-free `simAM()` attention (also via `params$simam`).
+* New `fit_var()` and `splitTimeRange()`; `freqBandSelect()` is now functional.
+
+## Other
+
+* Removed the unused `geigen` dependency (hard deps are `stats` + `gsignal`).

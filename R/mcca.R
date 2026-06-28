@@ -24,6 +24,13 @@
 #'   `center`/`scale`, view `dims`, `ncomp`, `reg`, kept `eigenvalues`, and
 #'   `n_views`.
 #' @seealso [mcca_transform()]
+#' @examples
+#' set.seed(1)
+#' s  <- rnorm(100)
+#' V1 <- cbind(s + rnorm(100, sd = 0.1), matrix(rnorm(100 * 3), 100, 3))
+#' V2 <- cbind(s + rnorm(100, sd = 0.1), matrix(rnorm(100 * 2), 100, 2))
+#' mc <- mcca_train(list(V1, V2), ncomp = 2L)
+#' consensus <- mcca_transform(mc, list(V1, V2))$consensus
 #' @export
 mcca_train <- function(views, ncomp = 1L, reg = 1e-3,
                        center = TRUE, scale = TRUE) {
@@ -123,4 +130,11 @@ mcca_transform <- function(object, views) {
   }
   consensus <- Reduce(`+`, scores) / V
   list(scores = scores, consensus = consensus, concat = do.call(cbind, scores))
+}
+
+#' @export
+print.mcca <- function(x, ...) {
+  cat(sprintf("Regularized SUMCOR MCCA: %d views (dims %s), %d component(s)\n",
+              x$n_views, paste(x$dims, collapse = "/"), x$ncomp))
+  invisible(x)
 }

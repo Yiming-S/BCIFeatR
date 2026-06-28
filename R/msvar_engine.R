@@ -70,6 +70,11 @@ rand_segments <- function(tt, minlen = 1, maxlen = tt, nsegments = 100) {
 #'   Returns `NULL` when the usable target set is empty.
 #' @references D. Degras, C.-M. Ting, H. Ombao (2022). Markov-switching
 #'   state-space models with applications to neuroimaging. CSDA.
+#' @examples
+#' set.seed(1)
+#' y <- matrix(rnorm(500 * 2), 500, 2)
+#' fit <- fit_var(y, p = 1)
+#' fit$theta$A
 #' @export
 fit_var <- function(y, p, subset = NULL) {
   p <- as.integer(p)
@@ -456,28 +461,32 @@ skfs_var <- function(y, M, p, theta, init) {
   list(Ms = Ms, LL = sum(LL), sum_Ms2 = sum_Ms2, Lp = Lp)
 }
 
-# Viterbi decode of the most-likely regime path (probability-space max-product).
+# Viterbi decode of the most-likely regime path. Runs in LOG space (max-sum) so
+# it does not underflow for long trials; inputs are the raw initial probs Pi,
+# per-time per-regime emission densities Lp, and transition matrix Z (as supplied
+# by skfs_var), logged internally.
 Viterbi <- function(Pi, Lp, Z) {
   T <- nrow(Lp)
   M <- ncol(Lp)
-  delta <- matrix(0, T, M)
-  psi <- matrix(0, T, M)
-  delta[1, ] <- Pi * Lp[1, ]
-  for (t in 2:T) {
-    for (j in 1:M) {
-      max_val <- -Inf; max_state <- 0
-      for (i in 1:M) {
-        val <- delta[t - 1, i] * Z[i, j] * Lp[t, j]
-        if (is.na(val) || is.nan(val)) val <- -Inf
-        if (val > max_val) { max_val <- val; max_state <- i }
+  logsafe <- function(v) { r <- suppressWarnings(log(v)); r[!is.finite(r)] <- -Inf; r }
+  lPi <- logsafe(Pi); lZ <- logsafe(Z); lLp <- logsafe(Lp)
+  delta <- matrix(-Inf, T, M)
+  psi <- matrix(1L, T, M)
+  delta[1, ] <- lPi + lLp[1, ]
+  if (T >= 2) {
+    for (t in 2:T) {
+      for (j in 1:M) {
+        cand <- delta[t - 1, ] + lZ[, j]        # log P(path to i) + log P(i->j)
+        cand[is.na(cand)] <- -Inf
+        i <- which.max(cand)
+        delta[t, j] <- cand[i] + lLp[t, j]
+        psi[t, j] <- i
       }
-      delta[t, j] <- max_val
-      psi[t, j] <- max_state
     }
   }
-  states <- numeric(T)
+  states <- integer(T)
   states[T] <- which.max(delta[T, ])
-  for (t in (T - 1):1) states[t] <- psi[t + 1, states[t + 1]]
+  if (T >= 2) for (t in (T - 1):1) states[t] <- psi[t + 1, states[t + 1]]
   states
 }
 

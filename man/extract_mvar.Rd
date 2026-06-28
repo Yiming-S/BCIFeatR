@@ -23,3 +23,8 @@ when \code{include_Q = TRUE}).
 Fits a VAR(p) to each trial and returns the vectorized AR coefficients,
 optionally appending the per-channel log innovation variance.
 }
+\examples{
+x <- lapply(1:6, function(i) matrix(rnorm(256 * 3), 256, 3))
+mv <- extract_mvar(x, order = 2L)
+dim(mv)
+}

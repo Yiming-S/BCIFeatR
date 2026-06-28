@@ -18,3 +18,7 @@ Symmetric positive semi-definite covariance estimate.
 \description{
 Estimate covariance with Ledoit-Wolf shrinkage toward scaled identity.
 }
+\examples{
+S <- LW_covariance(matrix(rnorm(200 * 5), 200, 5))
+dim(S)
+}

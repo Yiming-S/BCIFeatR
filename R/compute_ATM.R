@@ -42,8 +42,10 @@ atmBinTimeBinary <- function(B, bin = 1L) {
   if (k < 1L) stop("Too few time points for the requested bin.")
   B2 <- B[seq_len(k * bin), , drop = FALSE]
   dim(B2) <- c(bin, k, D)
-  Y <- apply(B2, c(2, 3), function(v) as.integer(any(v != 0L)))
-  matrix(Y, nrow = k, ncol = D)
+  # OR-aggregate over each bin window: sum the (bin)-axis with colSums(dims=1),
+  # then threshold. Vectorized -- avoids the per-(k,D) apply() closure.
+  Y <- colSums(B2 != 0L, dims = 1L)        # k x D counts of active sub-steps
+  matrix(as.integer(Y > 0L), nrow = k, ncol = D)
 }
 
 #' Detect contiguous avalanche segments.

@@ -29,3 +29,7 @@ Segments a sample-indexed label/marker vector into trials, either by maximal
 runs of constant label (\code{by_label = TRUE}) or into fixed-length windows
 within each constant-label run (\code{by_label = FALSE}).
 }
+\examples{
+labels <- c(rep(1, 5), rep(2, 3), rep(1, 4))
+splitTimeRange(labels, by_label = TRUE)
+}

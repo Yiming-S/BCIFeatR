@@ -40,3 +40,8 @@ band-power estimate (Parseval's relation). The log band power is returned by
 default, or the within-channel relative band power (fraction of total power
 across the bank) when \code{relative = TRUE}.
 }
+\examples{
+x <- lapply(1:6, function(i) matrix(rnorm(256 * 4), 256, 4))
+bp <- extract_bandpower(x, fs = 128, frequency_bands = list(c(8, 13), c(13, 30)))
+dim(bp)
+}

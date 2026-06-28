@@ -41,6 +41,16 @@ the highest whole-trial log-likelihood. This reproduces the original
 CSP -> MSVAR motor-imagery pipeline, with spatial filtering left to the
 feature dispatcher (e.g. fit CSP/FBCSP first, then pass the projected trials).
 }
+\examples{
+\donttest{
+set.seed(1)
+x <- lapply(1:12, function(i) matrix(rnorm(200 * 3), 200, 3))
+y <- factor(rep(c("a", "b"), each = 6))
+m <- msvar_train(x, y, M = 2L, p = 1L, seed = 1L,
+                 control = list(maxit = 5L, nseg = 15L))
+predict(m, x)
+}
+}
 \references{
 D. Degras, C.-M. Ting, H. Ombao (2022). Markov-switching
 state-space models with applications to neuroimaging. CSDA.

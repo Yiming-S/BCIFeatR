@@ -535,3 +535,136 @@ test_that("MSVAR feature requires at least two classes", {
   expect_error(featEx4Train(tr$x, one_class, "MSVAR",
                             params = list(M = 2L, p = 1L, control = msvar_ctrl)))
 })
+
+# ===== Improvement-review regression & coverage tests (v0.3.0 polish) =========
+
+test_that("FBCSP/FBCSSP work with a proper channel subset (regression)", {
+  bands <- list(c(8, 12), c(12, 20))
+  for (feat in c("FBCSP", "FBCSSP")) {
+    fit <- featEx4Train(train_sess$x, train_sess$y, feat,
+                        params = list(fs = 128L, channels = c(1L, 2L, 3L, 4L),
+                                      frequency_bands = bands, ncomps = 2L))
+    xte <- featEx4Test(test_sess$x, fit$object, feat)
+    expect_true(is.matrix(fit$features))
+    expect_equal(ncol(fit$features), ncol(xte))
+    expect_false(anyNA(xte))
+    expect_equal(fit$object$channels, c(1L, 2L, 3L, 4L))
+  }
+})
+
+test_that("Riemannian jitter is batch-invariant", {
+  obj <- featEx4Train(train_sess$x, train_sess$y, "Riemannian",
+                      list(cov_type = "oas", use_filter = FALSE, jitter_sd = 1e-8))$object
+  full  <- featEx4Test(test_sess$x, obj, "Riemannian")
+  alone <- featEx4Test(test_sess$x[1], obj, "Riemannian")
+  expect_equal(full[1, ], alone[1, ], tolerance = 0)
+})
+
+test_that("Riemannian/ACM_TS use_filter=TRUE path runs (riem_var_select + geodesic)", {
+  for (feat in c("Riemannian", "ACM_TS")) {
+    p <- if (feat == "Riemannian") list(cov_type = "oas", use_filter = TRUE) else
+      list(order = 2L, delay = 1L, shrinkage = "oas", use_filter = TRUE)
+    fit <- featEx4Train(train_sess$x, train_sess$y, feat, p)
+    xte <- featEx4Test(test_sess$x, fit$object, feat)
+    expect_true(is.matrix(fit$features))
+    expect_equal(ncol(fit$features), ncol(xte))
+    expect_false(anyNA(fit$features)); expect_false(anyNA(xte))
+    expect_false(is.null(fit$object$varsel))
+  }
+})
+
+test_that("ATM bin>1 (vectorized binning) round-trips", {
+  fit <- featEx4Train(train_sess$x, train_sess$y, "ATM",
+                      params = list(z = 2.0, bin = 2L, tuneBin = FALSE))
+  xte <- featEx4Test(test_sess$x, fit$object, "ATM")
+  expect_equal(ncol(fit$features), ncol(xte))
+  expect_false(anyNA(xte))
+})
+
+test_that("MDM metric-aware distance is coherent for every metric", {
+  for (mt in c("euclid", "logeuclid", "riemann")) {
+    m <- mdm_train(train_sess$x, train_sess$y, cov_type = "oas", metric = mt)
+    D <- predict(m, test_sess$x, type = "distance")
+    expect_equal(dim(D), c(length(test_sess$x), nlevels(train_sess$y)))
+    expect_false(anyNA(D))
+    expect_true(all(D >= 0))
+    # predict() class agrees with the legacy mdm_predict() factor
+    expect_equal(as.character(predict(m, test_sess$x)),
+                 as.character(mdm_predict(m, test_sess$x)))
+  }
+})
+
+test_that("MDM cov_type='cov' guards against p>=n trials", {
+  short <- lapply(1:6, function(i) matrix(rnorm(3 * 5), 3, 5))  # 3 samples, 5 ch
+  y <- factor(rep(1:2, 3))
+  expect_error(mdm_train(short, y, cov_type = "cov"))
+  expect_s3_class(mdm_train(short, y, cov_type = "oas"), "mdm")  # shrinkage is fine
+})
+
+test_that("S3 predict/print methods for mdm/msvar/mcca", {
+  m  <- mdm_train(train_sess$x, train_sess$y, metric = "logeuclid")
+  ms <- msvar_train(train_sess$x, train_sess$y, M = 2L, p = 1L, seed = 1L,
+                    control = list(maxit = 2L, nseg = 10L))
+  expect_true(is.factor(predict(m, test_sess$x)))
+  expect_true(is.matrix(predict(m, test_sess$x, type = "distance")))
+  expect_true(is.factor(predict(ms, test_sess$x)))
+  expect_true(is.matrix(predict(ms, test_sess$x, type = "loglik")))
+  v1 <- featEx4Train(train_sess$x, train_sess$y, "logvar", list())$features
+  v2 <- featEx4Train(train_sess$x, train_sess$y, "Hjorth", list())$features
+  mc <- mcca_train(list(v1, v2), ncomp = 2L)
+  expect_output(print(m), "MDM")
+  expect_output(print(ms), "Markov-switching")
+  expect_output(print(mc), "MCCA")
+})
+
+test_that("multiclass_EL trains, predicts, and exposes a working closure", {
+  fit <- featEx4Train(train_sess$x, train_sess$y, "logvar", list())
+  cl <- multiclass_EL(fit$features, train_sess$y, alpha = 0.5, lambda = 0.1, maxit = 80L)
+  expect_equal(nrow(cl$coef), ncol(fit$features))
+  expect_equal(ncol(cl$coef), nlevels(train_sess$y))
+  pred <- cl$predict(featEx4Test(test_sess$x, fit$object, "logvar"))
+  expect_true(is.factor(pred))
+  expect_length(pred, length(test_sess$x))
+  expect_setequal(levels(pred), levels(train_sess$y))
+})
+
+test_that("logvar_pca tolerates a constant/dead channel (no prcomp crash)", {
+  xc <- lapply(train_sess$x, function(M) { M[, 3] <- 0; M })
+  fit <- featEx4Train(xc, train_sess$y, "logvar_pca", list(ncomps = 4L))
+  xte <- featEx4Test(test_sess$x, fit$object, "logvar_pca")
+  expect_true(is.matrix(fit$features))
+  expect_equal(ncol(fit$features), ncol(xte))
+  expect_false(anyNA(fit$features))
+})
+
+test_that("mcca center/scale toggles run and snake aliases dispatch", {
+  v1 <- featEx4Train(train_sess$x, train_sess$y, "logvar", list())$features
+  v2 <- featEx4Train(train_sess$x, train_sess$y, "Hjorth", list())$features
+  for (ce in c(TRUE, FALSE)) for (sc in c(TRUE, FALSE)) {
+    mc <- mcca_train(list(v1, v2), ncomp = 2L, center = ce, scale = sc)
+    expect_equal(dim(mcca_transform(mc, list(v1, v2))$consensus), c(nrow(v1), 2L))
+  }
+  # snake_case aliases delegate to the camelCase entry points
+  a <- feat_ex_train(train_sess$x, train_sess$y, "logvar", list())
+  expect_equal(a$features,
+               featEx4Train(train_sess$x, train_sess$y, "logvar", list())$features)
+})
+
+test_that("freqBandSelect by_label=FALSE (fixed-window) path runs", {
+  set.seed(2)
+  fs <- 128L; L <- 512L; nblk <- 6L; nc <- 4L
+  blocks <- lapply(seq_len(nblk), function(b) {
+    cls <- if (b %% 2L == 1L) 1L else 2L
+    t <- seq(0, (L - 1) / fs, length.out = L)
+    M <- matrix(rnorm(L * nc, sd = 0.5), L, nc)
+    M[, 1] <- M[, 1] + 2 * sin(2 * pi * (if (cls == 1L) 10 else 22) * t)
+    list(x = M, y = rep(cls, L))
+  })
+  X <- do.call(rbind, lapply(blocks, `[[`, "x"))
+  Y <- unlist(lapply(blocks, `[[`, "y"))
+  fsel <- freqBandSelect(X, Y, fs = fs, flo = 4, fhi = 40, winlen = 256L,
+                         by_label = FALSE)
+  expect_equal(length(fsel$freqrange), 2L)
+  expect_true(all(is.finite(fsel$freqrange)))
+  expect_true(length(fsel$trials) >= 2L)
+})

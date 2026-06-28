@@ -28,3 +28,9 @@ SPD matrix representing the manifold mean.
 \description{
 Compute a mean of SPD matrices under a chosen Riemannian metric.
 }
+\examples{
+set.seed(1)
+covs <- replicate(6, crossprod(matrix(rnorm(100 * 3), 100, 3)) / 100,
+                  simplify = FALSE)
+riemannian_mean(simplify2array(covs), metric = "logeuclid")
+}

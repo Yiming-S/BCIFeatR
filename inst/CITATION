@@ -1,0 +1,18 @@
+citHeader("To cite BCIFeatR in publications, use:")
+
+bibentry(
+  bibtype  = "Manual",
+  title    = "BCIFeatR: Feature Extraction Toolkit for Brain-Computer Interfaces",
+  author   = person("Yiming", "Shen"),
+  year     = "2026",
+  note     = "R package version 0.3.0",
+  url      = "https://github.com/Yiming-S/BCIFeatR"
+)
+
+citFooter(
+  "The MSVAR feature and the msvar_train()/msvar_predict() classifier build on ",
+  "the Markov-switching VAR engine of Degras, Ting & Ombao; please also cite:\n",
+  "  Degras, D., Ting, C.-M., & Ombao, H. (2022). Markov-switching state-space ",
+  "models with applications to neuroimaging. Computational Statistics & Data ",
+  "Analysis."
+)

@@ -32,6 +32,14 @@ eigenproblem \verb{C w = lambda B w}, where \code{C} is the full stacked covaria
 solved by Cholesky-whitening \code{B} (the same device used elsewhere in the
 package) and taking the leading eigenvectors.
 }
+\examples{
+set.seed(1)
+s  <- rnorm(100)
+V1 <- cbind(s + rnorm(100, sd = 0.1), matrix(rnorm(100 * 3), 100, 3))
+V2 <- cbind(s + rnorm(100, sd = 0.1), matrix(rnorm(100 * 2), 100, 2))
+mc <- mcca_train(list(V1, V2), ncomp = 2L)
+consensus <- mcca_transform(mc, list(V1, V2))$consensus
+}
 \seealso{
 \code{\link[=mcca_transform]{mcca_transform()}}
 }

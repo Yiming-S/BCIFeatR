@@ -10,6 +10,18 @@
   if (is.list(x)) x[[1]] else x
 }
 
+#' Subset trial matrices to a channel index set (no-op for the full set).
+#'
+#' @param trials List of trial matrices.
+#' @param ch Integer channel indices, or NULL for all channels.
+#' @return List of (possibly column-subset) trial matrices.
+.apply_channel_subset <- function(trials, ch) {
+  if (is.null(ch)) return(trials)
+  nch <- ncol(as.matrix(trials[[1]]))
+  if (setequal(ch, seq_len(nch))) return(trials)
+  lapply(trials, function(M) as.matrix(M)[, ch, drop = FALSE])
+}
+
 #' Apply second-stage CSP projection when provided.
 #'
 #' @param filtered_trials List of trial matrices after first-stage filtering.
@@ -218,25 +230,16 @@
 #' @return Feature matrix with deterministic perturbation.
 .add_deterministic_jitter <- function(feats, jitter_sd = 0) {
   if (is.null(jitter_sd) || !is.finite(jitter_sd) || jitter_sd <= 0) return(feats)
-  # Seed a local RNG stream from the feature shape so the perturbation is
-  # reproducible across calls (and across save/load) without imprinting a
-  # spurious linear ramp on the features, which the previous index-based
-  # scheme did and which downstream linear classifiers could latch onto.
-  saved <- if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
-    get(".Random.seed", envir = globalenv(), inherits = FALSE)
-  } else NULL
-  on.exit({
-    if (is.null(saved)) {
-      if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
-        rm(".Random.seed", envir = globalenv())
-      }
-    } else {
-      assign(".Random.seed", saved, envir = globalenv())
-    }
-  }, add = TRUE)
-  set.seed(20240101L + nrow(feats) * 31L + ncol(feats))
-  feats + matrix(stats::rnorm(length(feats), sd = jitter_sd),
-                 nrow = nrow(feats), ncol = ncol(feats))
+  # Content-based deterministic perturbation: each element's jitter is a pure
+  # (RNG-free) function of its own value and column, so it (a) breaks exact ties
+  # without imprinting a row/index ramp a linear classifier could latch onto and
+  # (b) is batch-invariant -- the same trial yields the same features whether it
+  # is transformed alone or inside a larger batch. The classic fract-sin hash
+  # maps (value, column) into a pseudo-uniform number in [0, 1).
+  col_idx <- matrix(seq_len(ncol(feats)), nrow(feats), ncol(feats), byrow = TRUE)
+  h <- sin(feats * 12.9898 + col_idx * 78.233) * 43758.5453
+  u <- h - floor(h)                       # pseudo-uniform in [0, 1)
+  feats + jitter_sd * (2 * u - 1)         # symmetric perturbation in [-sd, sd]
 }
 
 #' Normalize a SimAM attention configuration to a canonical spec.
@@ -519,7 +522,8 @@
 #'
 #' @param x Trial list or session list.
 #' @param y Labels aligned with `x`; can be NULL only for ATM.
-#' @param feature One of logvar/logvar_pca/CSP/FBCSP/FBCSSP/TS/ACM_TS/Riemannian/ATM.
+#' @param feature One of logvar/logvar_pca/CSP/FBCSP/FBCSSP/TS/ACM_TS/Riemannian/
+#'   ATM/bandpower/Hjorth/MVAR/MSVAR.
 #' @param params Feature-specific parameter list. For SPD-based features (`TS`,
 #'   `ACM_TS`, `Riemannian`) the optional field `params$metric` selects the
 #'   tangent-space reference metric (`"euclid"` default, `"logeuclid"`,
@@ -532,6 +536,13 @@
 #'   label-contract checks. Intended for tight CV loops where callers have
 #'   already validated inputs upstream; never set this on untrusted data.
 #' @return List with `features` matrix and `object`; or list of such results for sessions.
+#' @examples
+#' set.seed(1)
+#' x <- lapply(1:8, function(i) matrix(rnorm(128 * 4), 128, 4))
+#' y <- factor(rep(c("L", "R"), each = 4))
+#' fit <- featEx4Train(x, y, feature = "CSP", params = list(ncomps = 2L))
+#' X_train <- fit$features
+#' X_test  <- featEx4Test(x, fit$object, feature = "CSP")
 #' @export
 featEx4Train <- function(x, y, feature,
                          params = list(), epsilon = 1e-6, simplify = TRUE,
@@ -608,10 +619,15 @@ featEx4Train <- function(x, y, feature,
         csp_type = feature,
         ncomps = ncomps
       )
-      filt <- apply_csp_filters(session_x_proc, csp_info$filter)
+      # When a channel subset is requested, the learned spatial filters have one
+      # row per selected channel, so the trials must be subset to match before
+      # projection (otherwise apply_csp_filters() is non-conformable).
+      x_for_csp <- .apply_channel_subset(session_x_proc, ch)
+      filt <- apply_csp_filters(x_for_csp, csp_info$filter)
       filt <- .apply_optional_filter2(filt, csp_info$filter2)
       feats <- extract_logvar_features(filt)
       obj <- csp_info
+      obj$channels <- ch
 
     } else if (feature == "TS") {
       cov_type_ts <- if (is.null(params$cov_type)) "oas" else tolower(params$cov_type)
@@ -797,7 +813,9 @@ featEx4Test <- function(x, object,
     feats <- log_var(proj)
 
   } else if (feature == "FBCSP" || feature == "FBCSSP") {
-    sig <- apply_csp_filters(x_proc, object$filter)
+    # Apply the same channel subset used at train time before projection.
+    x_for_csp <- .apply_channel_subset(x_proc, object$channels)
+    sig <- apply_csp_filters(x_for_csp, object$filter)
     sig <- .apply_optional_filter2(sig, object$filter2)
     feats <- extract_logvar_features(sig)
 

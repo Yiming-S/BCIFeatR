@@ -21,6 +21,9 @@
 #'
 #' @param data Numeric vector, numeric matrix, or list of numeric matrices.
 #' @return Numeric scalar/vector/matrix of log-variance values.
+#' @examples
+#' x <- lapply(1:5, function(i) matrix(rnorm(128 * 4), 128, 4))
+#' log_var(x)
 #' @export
 log_var <- function(data) {
   if (is.numeric(data) && is.vector(data)) {
@@ -71,13 +74,16 @@ logvar_transform <- function(data,
     }
   } else {
     if (!is.null(n_components)) {
-      # Fit PCA on training matrix and keep leading components.
-      pca_model <- prcomp(data, center = TRUE, scale. = TRUE)
+      # Fit PCA on training matrix and keep leading components. Floor the
+      # per-column scale so a constant/dead channel (zero variance) does not
+      # crash prcomp(scale. = TRUE) -- mirrors the preprocessor's sd flooring.
+      scalev <- apply(data, 2, stats::sd)
+      scalev[!is.finite(scalev) | scalev <= 0] <- 1
+      pca_model <- prcomp(data, center = TRUE, scale. = scalev)
       data <- pca_model$x[, 1:n_components, drop = FALSE]
     }
   }
-  variances <- apply(data, 2, var)
-  log_variances <- log(variances + 1e-10)
-  
+  log_variances <- log(.col_vars(data) + 1e-10)
+
   return(list(logvar = log_variances, pca_model = pca_model))
 }

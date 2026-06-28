@@ -34,3 +34,8 @@ state, so train and test trials can be re-weighted independently.
 Reference: Yang, Zhang, Li & Xie (2021), "SimAM: A Simple, Parameter-Free
 Attention Module for Convolutional Neural Networks", ICML.
 }
+\examples{
+M <- matrix(rnorm(256 * 4), 256, 4)
+W <- simAM(M, method = "vanilla")
+dim(W)
+}

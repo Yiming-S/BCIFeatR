@@ -35,6 +35,13 @@ Test trials are then assigned to the nearest class mean under the
 affine-invariant Riemannian distance. The geometry reuses
 \code{\link[=riemannian_mean]{riemannian_mean()}} and \code{\link[=riemannian_distance]{riemannian_distance()}}.
 }
+\examples{
+set.seed(1)
+x <- lapply(1:10, function(i) matrix(rnorm(200 * 3), 200, 3))
+y <- factor(rep(c("a", "b"), each = 5))
+m <- mdm_train(x, y, metric = "logeuclid")
+predict(m, x)
+}
 \seealso{
 \code{\link[=mdm_predict]{mdm_predict()}}
 }

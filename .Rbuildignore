@@ -1,1 +1,3 @@
 BCIFeatR_.*\.tar\.gz$
+^\.github$
+^cran-comments\.md$

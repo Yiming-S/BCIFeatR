@@ -15,3 +15,7 @@ Numeric scalar/vector/matrix of log-variance values.
 \description{
 Compute log-variance features for vector, matrix, or trial-list inputs.
 }
+\examples{
+x <- lapply(1:5, function(i) matrix(rnorm(128 * 4), 128, 4))
+log_var(x)
+}

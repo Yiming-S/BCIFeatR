@@ -15,6 +15,10 @@
 #' @param epsilon Numerical floor guarding the variance ratios.
 #' @return Numeric matrix (`n_trials x (3 * n_channels)`): the activity block,
 #'   then the mobility block, then the complexity block.
+#' @examples
+#' x <- lapply(1:6, function(i) matrix(rnorm(256 * 4), 256, 4))
+#' hj <- hjorth_parameters(x)
+#' dim(hj)
 #' @export
 hjorth_parameters <- function(data, log_activity = FALSE, epsilon = 1e-12) {
   if (!is.list(data) || length(data) == 0L) {
