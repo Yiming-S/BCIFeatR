@@ -1,58 +1,38 @@
 # Module: snake_case aliases for public API.
 # Scope: Provides consistent snake_case entry points alongside the original
-# mixed-case names. The legacy names remain fully supported so existing
-# downstream scripts keep working without modification.
+# mixed-case names. Each alias is a direct binding to its camelCase counterpart
+# (not a re-typed wrapper), so argument defaults can never drift between the two.
+# The legacy names remain fully supported so existing scripts keep working.
+
+# Direct bindings require the targets to exist when this file is sourced, so pin
+# the source order via @include (roxygen writes a matching Collate field).
+#' @include FeatureExtraction.R Bandpass_Filtering.R covariance.R compute_ACM.R
+NULL
 
 #' @rdname featEx4Train
 #' @export
-feat_ex_train <- function(x, y, feature, params = list(), epsilon = 1e-6,
-                          simplify = TRUE, skip_validation = FALSE) {
-  featEx4Train(x = x, y = y, feature = feature, params = params,
-               epsilon = epsilon, simplify = simplify,
-               skip_validation = skip_validation)
-}
+feat_ex_train <- featEx4Train
 
 #' @rdname featEx4Test
 #' @export
-feat_ex_test <- function(x, object, feature, epsilon = 1e-6,
-                         skip_validation = FALSE) {
-  featEx4Test(x = x, object = object, feature = feature, epsilon = epsilon,
-              skip_validation = skip_validation)
-}
+feat_ex_test <- featEx4Test
 
 #' @rdname LW_covariance
 #' @export
-lw_covariance <- function(x) LW_covariance(x)
+lw_covariance <- LW_covariance
 
 #' @rdname compute_ACM
 #' @export
-compute_acm <- function(x, order = 2, delay = 1,
-                        shrinkage = c("no", "LW", "oas")) {
-  compute_ACM(x = x, order = order, delay = delay, shrinkage = shrinkage)
-}
+compute_acm <- compute_ACM
 
 #' @rdname freqBank
 #' @export
-freq_bank <- function(eeg, fs, order = 3,
-                      bands = list(c(8, 13), c(13, 18), c(18, 23), c(23, 28)),
-                      filters = NULL) {
-  freqBank(eeg = eeg, fs = fs, order = order, bands = bands, filters = filters)
-}
+freq_bank <- freqBank
 
 #' @rdname freqBandSelect
 #' @export
-freq_band_select <- function(x, y, fs, flo = 1, fhi = fs / 2,
-                             winlen = NULL, overlap = 0.5,
-                             by_label = TRUE, trials = NULL) {
-  freqBandSelect(x = x, y = y, fs = fs, flo = flo, fhi = fhi,
-                 winlen = winlen, overlap = overlap,
-                 by_label = by_label, trials = trials)
-}
+freq_band_select <- freqBandSelect
 
 #' @rdname splitTimeRange
 #' @export
-split_time_range <- function(labels, by_label = TRUE,
-                             minlen = NULL, seglen = NULL) {
-  splitTimeRange(labels = labels, by_label = by_label,
-                 minlen = minlen, seglen = seglen)
-}
+split_time_range <- splitTimeRange

@@ -7,6 +7,12 @@
 #' @param x Feature matrix with shape `p x n`.
 #' @param label Binary label vector of length `n`.
 #' @return List with projection `direction` and normalized sample `score`.
+#' @examples
+#' set.seed(1)
+#' X <- matrix(rnorm(6 * 40), 6, 40)        # features x samples
+#' lab <- rep(c("a", "b"), each = 20)
+#' fl <- fisher_lda(X, lab)
+#' length(fl$direction)
 #' @export
 fisher_lda <- function(x, label) {
   n <- ncol(x); p <- nrow(x)
@@ -48,6 +54,12 @@ fisher_lda <- function(x, label) {
 #' @param maxit Maximum iterations per binary model.
 #' @param tol Early-stop tolerance on objective improvement.
 #' @return Model list with coefficients, class levels, and prediction closure.
+#' @examples
+#' set.seed(1)
+#' X <- matrix(rnorm(40 * 5), 40, 5)
+#' y <- factor(rep(c("a", "b"), each = 20))
+#' cl <- multiclass_EL(X, y, alpha = 0.5, lambda = 0.1)
+#' cl$predict(X)
 #' @export
 multiclass_EL <- function(X, y, alpha = 0.5, lambda = 0.1,
                           lr = 0.01, maxit = 1000, tol = 1e-6) {
@@ -241,6 +253,12 @@ mdm_train <- function(x, y,
 #'   with the trial-by-class distance matrix attached as attribute `"distances"`.
 #'   See also the [predict.mdm()] S3 method.
 #' @seealso [mdm_train()], [predict.mdm()]
+#' @examples
+#' set.seed(1)
+#' x <- lapply(1:10, function(i) matrix(rnorm(200 * 3), 200, 3))
+#' y <- factor(rep(c("a", "b"), each = 5))
+#' m <- mdm_train(x, y, metric = "logeuclid")
+#' pred <- mdm_predict(m, x)        # factor; attr(pred, "distances") for scores
 #' @export
 mdm_predict <- function(model, x) {
   if (!inherits(model, "mdm")) {

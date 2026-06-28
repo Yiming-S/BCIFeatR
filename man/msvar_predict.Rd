@@ -20,6 +20,16 @@ Scores each trial under every class model and predicts the highest-likelihood
 class. Scoring fixes the trained parameters (single E-step), so it is fast and
 deterministic.
 }
+\examples{
+\donttest{
+set.seed(1)
+x <- lapply(1:12, function(i) matrix(rnorm(200 * 3), 200, 3))
+y <- factor(rep(c("a", "b"), each = 6))
+m <- msvar_train(x, y, M = 2L, p = 1L, seed = 1L,
+                 control = list(maxit = 5L, nseg = 15L))
+msvar_predict(m, x)$y_hat
+}
+}
 \seealso{
 \code{\link[=msvar_train]{msvar_train()}}
 }

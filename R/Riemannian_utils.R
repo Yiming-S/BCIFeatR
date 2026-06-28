@@ -226,6 +226,11 @@ geodesic_filtering <- function(P_x, P_omega, W_tilde, epsilon = 1e-6) {
 #' @param B Second SPD matrix.
 #' @param eps Eigenvalue floor for numerical stability.
 #' @return Scalar geodesic distance.
+#' @examples
+#' set.seed(1)
+#' A <- crossprod(matrix(rnorm(100 * 3), 100, 3))
+#' B <- crossprod(matrix(rnorm(100 * 3), 100, 3))
+#' riemannian_distance(A, B)
 #' @export
 riemannian_distance <- function(A, B, eps = 1e-12) {
   # Whitening-based formulation: d(A,B)^2 = sum(log eig(B^{-1/2} A B^{-1/2})^2).
@@ -250,6 +255,11 @@ riemannian_distance <- function(A, B, eps = 1e-12) {
 #'   than the affine-invariant Fréchet mean with negligible accuracy loss for
 #'   tangent-space classification. See `riemannian_mean()` for alternatives.
 #' @return List with tangent coordinates `S` (d x n) and reference `P_omega`.
+#' @examples
+#' set.seed(1)
+#' covs <- lapply(1:6, function(i) crossprod(matrix(rnorm(100 * 3), 100, 3)) / 100)
+#' tg <- map_2_tangent_space(covs)
+#' dim(tg$S)
 #' @export
 map_2_tangent_space <- function(cov_matrices, epsilon = 1e-12, P_omega = NULL,
                                 metric = c("euclid", "logeuclid", "riemann")) {

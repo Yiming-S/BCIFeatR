@@ -1,0 +1,153 @@
+---
+title: "Motor-imagery decoding with BCIFeatR"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Motor-imagery decoding with BCIFeatR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+set.seed(1)
+```
+
+BCIFeatR gives every feature family the **same** train/test interface, so you can
+swap feature methods and classifiers without rewriting your pipeline. This
+vignette walks through a complete, leakage-safe motor-imagery (MI) decoding run
+on simulated EEG.
+
+```{r setup}
+library(BCIFeatR)
+```
+
+## Data format
+
+A dataset is a **list of trial matrices** (`samples x channels`, same number of
+channels in every trial) plus a **factor of labels**, one per trial.
+
+```{r simulate}
+# Simulate a 2-class MI dataset with band-power lateralization on two "motor"
+# channels (a stand-in for C3/C4 mu/beta desynchronization).
+simulate_mi <- function(n_per_class, n_ch = 8L, n_time = 256L, fs = 128, seed = 1) {
+  set.seed(seed)
+  y <- factor(rep(c("left", "right"), each = n_per_class))
+  tvec <- seq(0, (n_time - 1) / fs, length.out = n_time)
+  x <- lapply(seq_along(y), function(i) {
+    M <- matrix(rnorm(n_time * n_ch, sd = 0.7), n_time, n_ch)
+    a <- if (y[i] == "left") c(1.1, 0.4) else c(0.4, 1.1)   # swap by class
+    M[, 3] <- M[, 3] + a[1] * sin(2 * pi * 10 * tvec)        # 10 Hz on ch 3
+    M[, 6] <- M[, 6] + a[2] * sin(2 * pi * 22 * tvec)        # 22 Hz on ch 6
+    M
+  })
+  list(x = x, y = y, fs = fs)
+}
+
+train <- simulate_mi(40, seed = 1)
+test  <- simulate_mi(40, seed = 2)
+length(train$x); dim(train$x[[1]]); table(train$y)
+```
+
+## One API, many feature families
+
+`featEx4Train()` fits any feature extractor on the training trials and returns
+the feature matrix plus a fitted `object`; `featEx4Test()` applies that exact
+object to new trials (all train-time state — CSP filters, tangent reference,
+preprocessing stats — is reused, never re-estimated on test).
+
+```{r features}
+fit  <- featEx4Train(train$x, train$y, feature = "CSP", params = list(ncomps = 4L))
+Xtr  <- fit$features                       # trials x features
+Xte  <- featEx4Test(test$x, fit$object, feature = "CSP")
+dim(Xtr); dim(Xte)
+```
+
+Swapping the feature family is a one-word change. A small helper extracts any
+method and reports its dimensionality:
+
+```{r feature-zoo}
+specs <- list(
+  logvar     = list(),
+  bandpower  = list(fs = 128, frequency_bands = list(c(8, 13), c(13, 30))),
+  Hjorth     = list(),
+  CSP        = list(ncomps = 4L),
+  FBCSP      = list(fs = 128, frequency_bands = list(c(8, 13), c(18, 26)), ncomps = 2L),
+  TS         = list(cov_type = "oas"),
+  Riemannian = list(cov_type = "oas")
+)
+sapply(names(specs), function(f)
+  ncol(featEx4Train(train$x, train$y, f, specs[[f]])$features))
+```
+
+## A classifier and accuracy
+
+The package ships lightweight classifiers with a uniform `predict()` interface.
+Here is the Riemannian Minimum Distance to Mean (MDM), which works directly on
+raw trials:
+
+```{r mdm}
+m <- mdm_train(train$x, train$y, metric = "logeuclid")
+m                                          # one-line model summary (print method)
+pred <- predict(m, test$x)                 # class factor
+mean(pred == test$y)                       # accuracy
+```
+
+Or pair any extracted feature with a downstream classifier:
+
+```{r elastic-net}
+fit <- featEx4Train(train$x, train$y, "TS", list(cov_type = "oas"))
+cl  <- multiclass_EL(fit$features, train$y, alpha = 0.5, lambda = 0.1)
+acc <- mean(cl$predict(featEx4Test(test$x, fit$object, "TS")) == test$y)
+acc
+```
+
+## Preprocessing and attention
+
+Channel preprocessing (`none`/`center`/`scale`/`whiten`) and optional
+parameter-free SimAM attention re-weighting are applied **before** any feature,
+through `params`:
+
+```{r preprocess}
+fit <- featEx4Train(train$x, train$y, "TS",
+                    params = list(cov_type = "oas",
+                                  preprocess = "whiten",
+                                  simam = "vanilla"))
+dim(fit$features)
+```
+
+## Fusing feature views with MCCA
+
+When several feature families capture complementary information, multiset CCA
+aligns them into a shared low-dimensional representation:
+
+```{r mcca}
+V1 <- featEx4Train(train$x, train$y, "logvar", list())$features
+V2 <- featEx4Train(train$x, train$y, "bandpower",
+                   list(fs = 128, frequency_bands = list(c(8, 13), c(13, 30))))$features
+mc <- mcca_train(list(V1, V2), ncomp = 3L)
+mc
+dim(mcca_transform(mc, list(V1, V2))$consensus)
+```
+
+## Cross-session input
+
+When you have multiple recording sessions, pass a list of trial-lists and a list
+of label-vectors; each session is fitted/transformed independently and returned
+as a list of per-session results.
+
+```{r sessions}
+multi <- featEx4Train(
+  x = list(train$x, test$x),
+  y = list(train$y, test$y),
+  feature = "logvar", params = list()
+)
+length(multi); dim(multi[[1]]$features)
+```
+
+## Where to go next
+
+* `?featEx4Train` lists every supported `feature` and its `params`.
+* `mdm_train()` / `msvar_train()` are generative classifiers; `mcca_train()`
+  fuses views; `simAM()` is the standalone attention transform.
+* The Markov-switching VAR feature/classifier (`feature = "MSVAR"`,
+  `msvar_train()`) is strongest on low-dimensional (e.g. CSP-projected) trials.

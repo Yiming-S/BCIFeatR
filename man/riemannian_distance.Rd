@@ -19,3 +19,9 @@ Scalar geodesic distance.
 \description{
 Compute affine-invariant Riemannian distance between two SPD matrices.
 }
+\examples{
+set.seed(1)
+A <- crossprod(matrix(rnorm(100 * 3), 100, 3))
+B <- crossprod(matrix(rnorm(100 * 3), 100, 3))
+riemannian_distance(A, B)
+}

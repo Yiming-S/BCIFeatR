@@ -19,3 +19,7 @@ List of filter design objects from \code{gsignal::butter}.
 \description{
 Build a Butterworth filter bank once for reuse across trials.
 }
+\examples{
+bank <- build_bandpass_bank(fs = 128, bands = list(c(8, 13), c(13, 30)))
+length(bank)
+}

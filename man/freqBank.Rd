@@ -40,3 +40,8 @@ List of filtered trial matrices, one per band.
 \description{
 Apply a Butterworth filter bank to one trial matrix.
 }
+\examples{
+eeg <- matrix(rnorm(256 * 4), 256, 4)
+bands <- freqBank(eeg, fs = 128, bands = list(c(8, 13), c(13, 30)))
+length(bands)
+}

@@ -14,7 +14,14 @@ featEx4Test(
   skip_validation = FALSE
 )
 
-feat_ex_test(x, object, feature, epsilon = 1e-06, skip_validation = FALSE)
+feat_ex_test(
+  x,
+  object,
+  feature = c("logvar", "logvar_pca", "CSP", "FBCSP", "FBCSSP", "TS", "ACM_TS",
+    "Riemannian", "ATM", "bandpower", "Hjorth", "MVAR", "MSVAR"),
+  epsilon = 1e-06,
+  skip_validation = FALSE
+)
 }
 \arguments{
 \item{x}{Trial list or single trial matrix.}
@@ -33,4 +40,11 @@ Feature matrix with one row per test trial.
 }
 \description{
 Transform test trials using a trained feature object.
+}
+\examples{
+set.seed(1)
+x <- lapply(1:8, function(i) matrix(rnorm(128 * 4), 128, 4))
+y <- factor(rep(c("L", "R"), each = 4))
+fit <- featEx4Train(x, y, "logvar", list())
+featEx4Test(x, fit$object, "logvar")
 }

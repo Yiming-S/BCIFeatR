@@ -1,3 +1,20 @@
+# BCIFeatR 0.3.3
+
+Documentation and release-hygiene polish (no code-behavior changes).
+
+* Added a `vignette("mi-decoding")` — an end-to-end, simulated motor-imagery
+  decoding walkthrough (feature families, classifiers, preprocessing/SimAM,
+  MCCA fusion, cross-session input).
+* Added runnable `@examples` to many more exported functions (now covers the
+  primary entry points, classifiers, covariance/Riemannian utilities, CSP,
+  ATM, ACM, and band-pass helpers).
+* `inst/CITATION` now derives the version from the package metadata instead of
+  hardcoding it.
+* snake_case aliases (`feat_ex_train`, `lw_covariance`, `compute_acm`, ...) are
+  now direct bindings to their camelCase counterparts, so argument defaults can
+  never drift between the two names.
+* DESCRIPTION gains `Language: en-US`; README shows the `print()` methods.
+
 # BCIFeatR 0.3.2
 
 Correctness release from a second deep review.

@@ -21,6 +21,13 @@ Assigns each trial to the nearest class mean under the model's mean metric
 (Frobenius for \code{euclid}, log-Euclidean for \code{logeuclid}, affine-invariant for
 \code{riemann}), so the rule minimizes a single divergence for every metric.
 }
+\examples{
+set.seed(1)
+x <- lapply(1:10, function(i) matrix(rnorm(200 * 3), 200, 3))
+y <- factor(rep(c("a", "b"), each = 5))
+m <- mdm_train(x, y, metric = "logeuclid")
+pred <- mdm_predict(m, x)        # factor; attr(pred, "distances") for scores
+}
 \seealso{
 \code{\link[=mdm_train]{mdm_train()}}, \code{\link[=predict.mdm]{predict.mdm()}}
 }

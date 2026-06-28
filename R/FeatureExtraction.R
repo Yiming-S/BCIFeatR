@@ -819,6 +819,12 @@ featEx4Train <- function(x, y, feature,
 #' @param skip_validation When `TRUE`, bypasses test-time finiteness/contract
 #'   checks for use inside hot CV loops. Do not set on untrusted data.
 #' @return Feature matrix with one row per test trial.
+#' @examples
+#' set.seed(1)
+#' x <- lapply(1:8, function(i) matrix(rnorm(128 * 4), 128, 4))
+#' y <- factor(rep(c("L", "R"), each = 4))
+#' fit <- featEx4Train(x, y, "logvar", list())
+#' featEx4Test(x, fit$object, "logvar")
 #' @export
 featEx4Test <- function(x, object,
                         feature = c("logvar", "logvar_pca",

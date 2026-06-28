@@ -228,6 +228,11 @@ atmTrialFeature <- function(trial, zfit, zThresh = 3, bin = 1L, minLen = 2L,
 #' @param x List of trial matrices.
 #' @param params Optional ATM parameter list.
 #' @return List with `features` matrix and reusable `object` for testing.
+#' @examples
+#' set.seed(1)
+#' x <- lapply(1:6, function(i) matrix(rnorm(256 * 4), 256, 4))
+#' res <- atmTrain(x, params = list(z = 2, bin = 1L))
+#' dim(res$features)
 #' @export
 atmTrain <- function(x, params = NULL) {
   if (is.null(params)) params <- list()

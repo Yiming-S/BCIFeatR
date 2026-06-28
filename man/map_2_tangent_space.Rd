@@ -29,3 +29,9 @@ List with tangent coordinates \code{S} (d x n) and reference \code{P_omega}.
 \description{
 Map SPD matrices to upper-triangular tangent-space vectors.
 }
+\examples{
+set.seed(1)
+covs <- lapply(1:6, function(i) crossprod(matrix(rnorm(100 * 3), 100, 3)) / 100)
+tg <- map_2_tangent_space(covs)
+dim(tg$S)
+}

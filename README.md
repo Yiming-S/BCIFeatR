@@ -88,12 +88,14 @@ multi_fit <- featEx4Train(
 ```r
 # Riemannian Minimum Distance to Mean (operates on raw trials)
 mdm   <- mdm_train(x_train, y_train, metric = "logeuclid")
+mdm                                            # print() -> one-line model summary
 y_hat <- predict(mdm, x_test)                  # class factor
 dists <- predict(mdm, x_test, type = "distance")
 
 # Markov-switching VAR generative classifier (strongest on low-dimensional,
 # e.g. CSP-projected, trials; argmax of the per-class trial log-likelihood)
 msv   <- msvar_train(x_train, y_train, M = 2L, p = 1L, seed = 1L)
+msv                                            # print() -> regimes / classes
 y_hat <- predict(msv, x_test)                  # class factor
 ll    <- predict(msv, x_test, type = "loglik") # per-class log-likelihoods
 ```

@@ -37,3 +37,10 @@ and class \code{pairs}.
 \description{
 Train one-vs-one multiclass CSP filters.
 }
+\examples{
+set.seed(1)
+x <- lapply(1:12, function(i) matrix(rnorm(128 * 4), 128, 4))
+y <- rep(1:2, each = 6)
+csp <- multiclass_csp(x, y, ncomps = 2L)
+dim(csp$filter)
+}

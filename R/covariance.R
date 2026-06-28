@@ -38,6 +38,9 @@ LW_covariance <- function(x) {
 #' @param X Numeric matrix (`samples x variables`).
 #' @param eps Small threshold for safe denominator handling.
 #' @return Symmetric positive semi-definite covariance estimate.
+#' @examples
+#' S <- oas_covariance(matrix(rnorm(200 * 5), 200, 5))
+#' dim(S)
 #' @export
 oas_covariance <- function(X, eps = 1e-12) {
   X <- as.matrix(X)

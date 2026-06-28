@@ -17,3 +17,10 @@ List with projection \code{direction} and normalized sample \code{score}.
 \description{
 Compute Fisher LDA direction for binary classes.
 }
+\examples{
+set.seed(1)
+X <- matrix(rnorm(6 * 40), 6, 40)        # features x samples
+lab <- rep(c("a", "b"), each = 20)
+fl <- fisher_lda(X, lab)
+length(fl$direction)
+}

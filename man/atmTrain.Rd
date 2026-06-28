@@ -17,3 +17,9 @@ List with \code{features} matrix and reusable \code{object} for testing.
 \description{
 Train ATM extractor and produce training features.
 }
+\examples{
+set.seed(1)
+x <- lapply(1:6, function(i) matrix(rnorm(256 * 4), 256, 4))
+res <- atmTrain(x, params = list(z = 2, bin = 1L))
+dim(res$features)
+}

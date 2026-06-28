@@ -35,3 +35,10 @@ Model list with coefficients, class levels, and prediction closure.
 \description{
 Train multiclass one-vs-rest elastic-net logistic models.
 }
+\examples{
+set.seed(1)
+X <- matrix(rnorm(40 * 5), 40, 5)
+y <- factor(rep(c("a", "b"), each = 20))
+cl <- multiclass_EL(X, y, alpha = 0.5, lambda = 0.1)
+cl$predict(X)
+}

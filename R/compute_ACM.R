@@ -9,6 +9,10 @@
 #' @param delay Delay between blocks in samples.
 #' @param shrinkage Covariance estimator: `no`, `LW`, or `oas`.
 #' @return SPD covariance matrix or list of matrices matching input shape.
+#' @examples
+#' x <- lapply(1:4, function(i) matrix(rnorm(200 * 3), 200, 3))
+#' acm <- compute_ACM(x, order = 2, delay = 1, shrinkage = "oas")
+#' dim(acm[[1]])
 #' @export
 compute_ACM <- function(x, order = 2, delay = 1, shrinkage = c("no", "LW", "oas")) {
 	order <- as.integer(order)

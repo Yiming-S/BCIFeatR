@@ -1,3 +1,8 @@
+## `meta` is supplied by utils::citation(); fall back when read directly.
+if (!exists("meta") || is.null(meta)) meta <- packageDescription("BCIFeatR")
+ver <- meta$Version
+if (is.null(ver) || is.na(ver)) ver <- "0.3.3"
+
 citHeader("To cite BCIFeatR in publications, use:")
 
 bibentry(
@@ -5,7 +10,7 @@ bibentry(
   title    = "BCIFeatR: Feature Extraction Toolkit for Brain-Computer Interfaces",
   author   = person("Yiming", "Shen"),
   year     = "2026",
-  note     = "R package version 0.3.0",
+  note     = sprintf("R package version %s", ver),
   url      = "https://github.com/Yiming-S/BCIFeatR"
 )
 

@@ -15,6 +15,12 @@
 #'   `riemannian_mean()`. Defaults to `"euclid"` for speed.
 #' @return List with flattened `filter`, projected `pattern`, eigen `var_ratio`,
 #'   and class `pairs`.
+#' @examples
+#' set.seed(1)
+#' x <- lapply(1:12, function(i) matrix(rnorm(128 * 4), 128, 4))
+#' y <- rep(1:2, each = 6)
+#' csp <- multiclass_csp(x, y, ncomps = 2L)
+#' dim(csp$filter)
 #' @export
 multiclass_csp <- function(x, labels,
                            ncomps = 6,

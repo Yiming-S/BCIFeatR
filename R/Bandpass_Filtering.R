@@ -8,6 +8,9 @@
 #' @param bands List of pass bands, each as `c(low, high)` in Hz.
 #' @param order Filter order.
 #' @return List of filter design objects from `gsignal::butter`.
+#' @examples
+#' bank <- build_bandpass_bank(fs = 128, bands = list(c(8, 13), c(13, 30)))
+#' length(bank)
 #' @export
 build_bandpass_bank <- function(fs, bands, order = 3) {
   lapply(bands,
@@ -24,6 +27,10 @@ build_bandpass_bank <- function(fs, bands, order = 3) {
 #'   when supplied, `fs`, `order`, and `bands` are ignored. Use this to avoid
 #'   redesigning identical filters once per trial in filter-bank pipelines.
 #' @return List of filtered trial matrices, one per band.
+#' @examples
+#' eeg <- matrix(rnorm(256 * 4), 256, 4)
+#' bands <- freqBank(eeg, fs = 128, bands = list(c(8, 13), c(13, 30)))
+#' length(bands)
 #' @export
 freqBank <- function(eeg, fs, order = 3,
                      bands = list(c(8, 13), c(13, 18), c(18, 23), c(23, 28)),

@@ -137,6 +137,15 @@ msvar_train <- function(x, y, M = 2L, p = 1L,
 #' @return List with `y_hat` (factor of predicted classes) and `loglik`
 #'   (trial-by-class log-likelihood matrix).
 #' @seealso [msvar_train()]
+#' @examples
+#' \donttest{
+#' set.seed(1)
+#' x <- lapply(1:12, function(i) matrix(rnorm(200 * 3), 200, 3))
+#' y <- factor(rep(c("a", "b"), each = 6))
+#' m <- msvar_train(x, y, M = 2L, p = 1L, seed = 1L,
+#'                  control = list(maxit = 5L, nseg = 15L))
+#' msvar_predict(m, x)$y_hat
+#' }
 #' @export
 msvar_predict <- function(model, x) {
   if (!inherits(model, "msvar")) {

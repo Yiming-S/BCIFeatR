@@ -17,3 +17,7 @@ Symmetric positive semi-definite covariance estimate.
 \description{
 Estimate covariance with Oracle Approximating Shrinkage (OAS).
 }
+\examples{
+S <- oas_covariance(matrix(rnorm(200 * 5), 200, 5))
+dim(S)
+}
