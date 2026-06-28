@@ -101,9 +101,11 @@ sub3 is easy (≈0.92), sub2 hard (≈0.6–0.75) — typical MI between-subject
 | MDM | 0.733 | 0.136 |
 | Riemannian | 0.731 | 0.142 |
 | logvar | 0.722 | 0.142 |
-| CSP → MSVAR | 0.581* | — |
+| CSP → MSVAR | 0.590 | 0.126 |
 
-\*only ran for 2/9 subjects — see §5.
+(CSP → MSVAR re-run on all 9 subjects after the v0.3.4 fix — per subject: B01 0.500,
+B02 0.500, B03 0.500, B04 0.860, B05 0.652, B06 0.494, B07 0.640, B08 0.667, B09 0.500.
+It now runs everywhere but stays near chance on this 3-channel data; see §5.)
 
 **Per-subject** (train T / test E):
 
@@ -147,9 +149,10 @@ B04 very easy (≈0.95), B03 near chance (≈0.5–0.58) — the well-known BNCI
    *"infinite or missing values in 'x'"* for 7/9 subjects. **Fixed in v0.3.4** (the M-step
    floors responsibility totals, falls back to a benign `A = 0, Q = I` empty-regime
    update, keeps seed covariances SPD, and guards k-means). MSVAR now runs for **every**
-   subject; on this 3-channel data it degrades gracefully to ~chance (0.50–0.64) — there
-   is little regime-switching dynamics for it to exploit after CSP — rather than erroring.
-   The other 10 methods completed for every subject/fold throughout.
+   subject (mean 0.590 ± 0.126; B01–B09 = 0.50/0.50/0.50/0.86/0.65/0.49/0.64/0.67/0.50);
+   on this 3-channel data it stays near chance — there is little regime-switching dynamics
+   for it to exploit after CSP — rather than erroring. The other 10 methods completed for
+   every subject/fold throughout.
 
 5. **Timing** (mean per fold, feature extraction + LDA): Zhou2016 ≈ 15 s, BNCI ≈ 6 s.
    On Zhou the cost is dominated by the per-band zero-phase filtering in `FBCSP` (≈8.6 s)
