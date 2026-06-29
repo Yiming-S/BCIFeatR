@@ -15,7 +15,7 @@ Description: A comprehensive feature extraction library for EEG-based
     parameter-free SimAM attention. Provides a unified train/test dispatcher
     with preprocessing, input validation, and metadata tracking.
 License: MIT + file LICENSE
-URL: https://github.com/Yiming-S/BCIFeatR
+URL: https://github.com/Yiming-S/BCIFeatR, https://yiming-s.github.io/BCIFeatR/
 BugReports: https://github.com/Yiming-S/BCIFeatR/issues
 Encoding: UTF-8
 Language: en-US

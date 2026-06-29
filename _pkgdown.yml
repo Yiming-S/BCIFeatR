@@ -1,0 +1,22 @@
+url: https://yiming-s.github.io/BCIFeatR/
+
+template:
+  bootstrap: 5
+  bootswatch: flatly
+  bslib:
+    primary: "#197b75"
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+
+home:
+  title: BCIFeatR
+  description: Feature extraction toolkit for EEG-based brain-computer interfaces in R.
+
+articles:
+- title: Motor-imagery decoding
+  navbar: ~
+  contents:
+  - mi-decoding
