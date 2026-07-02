@@ -125,6 +125,49 @@ B04 very easy (≈0.95), B03 near chance (≈0.5–0.58) — the well-known BNCI
 
 ---
 
+## 4b. Within-session vs cross-session (session-drift analysis)
+
+Same subjects, same methods, same shrinkage-LDA — only the split changes.
+**Within-session** = stratified 5-fold CV *inside each session* (train and test
+from the same recording); averaged over folds, sessions, and subjects.
+`Δ = within − cross` is the session-drift penalty (positive ⇒ cross-session is
+harder). CSP → MSVAR omitted here (near chance either way).
+
+| Method | Zhou within | Zhou cross | Δ | BNCI within | BNCI cross | Δ |
+|---|---|---|---|---|---|---|
+| logvar | 0.788 | 0.755 | +0.033 | 0.732 | 0.722 | +0.010 |
+| CSP | 0.848 | 0.814 | +0.034 | 0.739 | 0.737 | +0.002 |
+| FBCSP | 0.830 | 0.793 | +0.037 | 0.757 | 0.762 | −0.005 |
+| bandpower | 0.787 | 0.807 | −0.020 | 0.755 | 0.751 | +0.004 |
+| Hjorth | 0.754 | 0.759 | −0.005 | 0.733 | 0.741 | −0.008 |
+| **TS** | **0.846** | **0.746** | **+0.100** | 0.738 | 0.741 | −0.003 |
+| **ACM_TS** | **0.837** | **0.749** | **+0.088** | 0.756 | 0.759 | −0.003 |
+| Riemannian | 0.793 | 0.746 | +0.047 | 0.731 | 0.731 | 0.000 |
+| MVAR | 0.619 | 0.664 | −0.045 | 0.742 | 0.761 | −0.019 |
+| MDM | 0.820 | 0.784 | +0.036 | 0.719 | 0.733 | −0.014 |
+
+**Two clearly different regimes:**
+
+- **Zhou2016 has real session drift, and it hits covariance/tangent-space
+  methods hardest.** Tangent space (**+0.10**) and ACM_TS (**+0.09**) lose the
+  most going cross-session, with Riemannian/MDM/CSP/FBCSP down 0.03–0.05. This
+  is expected: the per-trial covariance geometry these methods rely on shifts
+  between sessions, so a reference/mean fit on other sessions transfers
+  imperfectly. Band-power/Hjorth/MVAR are roughly flat or slightly *better*
+  cross-session — they are drift-robust, and cross-session pools ~2× the
+  training trials (2 sessions vs 4/5 of one), which offsets the small drift.
+- **BNCI2b shows almost no drift** (all |Δ| ≤ 0.02, mostly ≤0). With only 3
+  fixed electrodes (C3/Cz/C4) the sessions are stable, and the larger
+  cross-session training set fully compensates — cross-session is essentially
+  free here.
+
+Takeaway: BCIFeatR's covariance/Riemannian features are the strongest *within*
+session, but they are also the most session-drift-sensitive — on a drifting
+dataset (Zhou) a within-session evaluation overstates their cross-session
+performance by ~0.1, whereas on a stable dataset (BNCI2b) the two agree.
+
+---
+
 ## 5. Observations
 
 1. **Accuracies are literature-consistent.** Zhou2016 binary MI in the ~0.75–0.82 band
@@ -161,19 +204,44 @@ B04 very easy (≈0.95), B03 near chance (≈0.5–0.58) — the well-known BNCI
 
 ---
 
-## 6. Reproducibility
+## 6. Numerical validation against reference implementations
 
-- Benchmark script: `scratchpad/realdata_bench.R`; raw per-subject results:
-  `real_zhou.csv`, `real_bnci.csv`, `real_results.rds`.
+Beyond "runs without error", the covariance / Riemannian primitives were checked
+against `scikit-learn` and `pyriemann` on identical matrices (via `reticulate`),
+isolating the math. They match to machine precision where the definition is
+unambiguous:
+
+| Primitive | Reference | Max error |
+|---|---|---|
+| Ledoit–Wolf covariance | `sklearn.covariance.LedoitWolf` | 2.4e-15 (exact) |
+| Affine-invariant distance | `pyriemann` `distance_riemann` | 1.9e-15 (exact) |
+| Riemannian (Fréchet) mean | `pyriemann` `mean_riemann` | 5.3e-10 |
+| Tangent space | `pyriemann` `tangent_space` | 5.6e-15 (exact) |
+| OAS covariance | `sklearn.covariance.OAS` | 3.4e-3 (shrinkage-coefficient variant) |
+
+The tangent-vector norm equals the Riemannian distance to the reference (a
+metric identity) to 1.5e-15. Only the OAS shrinkage intensity differs from
+sklearn's variant (0.34%); both are valid estimators. Script: `numval.R`.
+
+## 7. Reproducibility
+
+- Scripts (in `benchmarks/`): `realdata_bench.R` (cross-session),
+  `realdata_within.R` (within-session), `numval.R` (numerical validation).
+- Raw results: `real_zhou.csv`, `real_bnci.csv` (cross), `within_zhou.csv`,
+  `within_bnci.csv` (within-session).
 - Deterministic given the loaders; MSVAR seeded (`seed = 1`). Loaders depend on
-  `edfReader`, `R.matlab`, `gsignal`.
-- BCIFeatR loaded from source (v0.3.3); the lab loaders are unmodified.
+  `edfReader`, `R.matlab`, `gsignal`; validation adds `reticulate` + Python
+  `pyriemann`/`scikit-learn`.
+- BCIFeatR loaded from source; the lab loaders are unmodified.
 
-## 7. Conclusion
+## 8. Conclusion
 
-BCIFeatR works correctly and competitively on two independent real MI-EEG datasets, with
-no failures on the standard feature→classifier pipeline and results in the expected
-published range. The cross-dataset behavior (spatial methods win with many channels;
-AR/MVAR catches up with few) is sensible and reinforces that the implementations are
-sound. The single actionable follow-up is hardening `CSP → MSVAR` against near-degenerate
-low-dimensional inputs.
+BCIFeatR works correctly and competitively on two independent real MI-EEG
+datasets, with no failures on the standard feature→classifier pipeline and
+results in the published range. Its core Riemannian primitives match `pyriemann`
+to machine precision. The cross-dataset behavior is sensible: spatial methods win
+with many channels, AR/MVAR catches up with few, and covariance/tangent-space
+features are the strongest within-session but the most session-drift-sensitive
+(Zhou loses ~0.1 cross-session; stable BNCI2b loses ~0). The one code follow-up
+from this testing — hardening `CSP → MSVAR` / the MSVAR EM against degenerate
+low-dimensional inputs — has been fixed in v0.3.4.
