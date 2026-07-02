@@ -1,98 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
   <title id="title">BCIFeatR cover</title>
-  <desc id="desc">EEG trials flow through a unified train/test API into feature families, fitted objects, and feature matrices.</desc>
-  <defs>
-    <linearGradient id="panel" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#f7fbfa"/>
-      <stop offset="100%" stop-color="#eef4f2"/>
-    </linearGradient>
-    <filter id="soft-shadow" x="-12%" y="-12%" width="124%" height="124%">
-      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#102326" flood-opacity="0.12"/>
-    </filter>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#44636a"/>
-    </marker>
-  </defs>
-
-  <rect width="1200" height="520" rx="28" fill="url(#panel)"/>
-  <path d="M0 418 C150 384 238 442 390 405 C555 365 650 282 824 321 C992 358 1062 284 1200 247 L1200 520 L0 520 Z" fill="#dfece8"/>
-  <path d="M0 82 C150 118 236 44 381 82 C531 121 599 186 762 147 C922 109 1045 82 1200 128" fill="none" stroke="#d7e5e1" stroke-width="18" stroke-linecap="round"/>
-
-  <g transform="translate(64 66)">
-    <text x="0" y="0" font-family="Inter, Arial, sans-serif" font-size="62" font-weight="800" fill="#102326">BCIFeatR</text>
-    <text x="2" y="42" font-family="Inter, Arial, sans-serif" font-size="22" fill="#3b555a">Feature extraction toolkit for EEG-based brain-computer interfaces in R</text>
-  </g>
-
-  <g transform="translate(72 168)" filter="url(#soft-shadow)">
-    <rect x="0" y="0" width="230" height="210" rx="18" fill="#ffffff"/>
-    <text x="24" y="40" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" fill="#102326">EEG trials</text>
-    <text x="24" y="70" font-family="Inter, Arial, sans-serif" font-size="14" fill="#536b70">samples x channels</text>
-    <g transform="translate(22 96)" fill="none" stroke-width="3" stroke-linecap="round">
-      <path d="M0 38 C20 38 18 8 38 8 C58 8 56 68 76 68 C96 68 95 22 114 22 C133 22 132 50 152 50 C172 50 168 28 186 28" stroke="#197b75"/>
-      <path d="M0 82 C16 82 20 58 38 58 C56 58 58 101 78 101 C98 101 99 72 118 72 C137 72 139 89 158 89 C177 89 170 67 186 67" stroke="#d1793a"/>
-    </g>
-    <g transform="translate(26 174)">
-      <rect x="0" y="0" width="46" height="14" rx="7" fill="#dceeea"/>
-      <rect x="58" y="0" width="46" height="14" rx="7" fill="#f2dfd0"/>
-      <rect x="116" y="0" width="46" height="14" rx="7" fill="#e4e0f3"/>
-    </g>
-  </g>
-
-  <line x1="325" y1="274" x2="403" y2="274" stroke="#44636a" stroke-width="4" marker-end="url(#arrow)"/>
-
-  <g transform="translate(428 132)" filter="url(#soft-shadow)">
-    <rect x="0" y="0" width="344" height="286" rx="18" fill="#ffffff"/>
-    <text x="28" y="42" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="800" fill="#102326">Unified train/test API</text>
-    <text x="28" y="72" font-family="Inter, Arial, sans-serif" font-size="14" fill="#536b70">fit once, transform held-out trials deterministically</text>
-
-    <g transform="translate(28 108)">
-      <rect x="0" y="0" width="288" height="42" rx="10" fill="#eef7f5"/>
-      <text x="18" y="27" font-family="Menlo, Consolas, monospace" font-size="17" fill="#155e59">feat_ex_train(x, y, feature)</text>
-    </g>
-    <g transform="translate(28 166)">
-      <rect x="0" y="0" width="288" height="42" rx="10" fill="#fff3eb"/>
-      <text x="18" y="27" font-family="Menlo, Consolas, monospace" font-size="17" fill="#8a4b18">feat_ex_test(x_new, object)</text>
-    </g>
-
-    <g transform="translate(30 237)" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700">
-      <rect x="0" y="-20" width="58" height="28" rx="14" fill="#dceeea"/>
-      <text x="14" y="-1" fill="#155e59">CSP</text>
-      <rect x="70" y="-20" width="70" height="28" rx="14" fill="#e4e0f3"/>
-      <text x="84" y="-1" fill="#574f86">FBCSP</text>
-      <rect x="152" y="-20" width="42" height="28" rx="14" fill="#e6edf4"/>
-      <text x="166" y="-1" fill="#365b78">TS</text>
-      <rect x="206" y="-20" width="88" height="28" rx="14" fill="#f2dfd0"/>
-      <text x="220" y="-1" fill="#8a4b18">MVAR</text>
-    </g>
-  </g>
-
-  <line x1="795" y1="274" x2="873" y2="274" stroke="#44636a" stroke-width="4" marker-end="url(#arrow)"/>
-
-  <g transform="translate(900 168)" filter="url(#soft-shadow)">
-    <rect x="0" y="0" width="230" height="210" rx="18" fill="#ffffff"/>
-    <text x="24" y="40" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" fill="#102326">Outputs</text>
-    <text x="24" y="70" font-family="Inter, Arial, sans-serif" font-size="14" fill="#536b70">features + fitted object</text>
-
-    <g transform="translate(24 96)">
-      <rect x="0" y="0" width="84" height="72" rx="10" fill="#eef3f7"/>
-      <g fill="#6f8792">
-        <rect x="14" y="14" width="14" height="14" rx="3"/>
-        <rect x="36" y="14" width="14" height="14" rx="3"/>
-        <rect x="58" y="14" width="14" height="14" rx="3"/>
-        <rect x="14" y="36" width="14" height="14" rx="3"/>
-        <rect x="36" y="36" width="14" height="14" rx="3"/>
-        <rect x="58" y="36" width="14" height="14" rx="3"/>
-      </g>
-      <text x="102" y="27" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#102326">feature matrix</text>
-      <text x="102" y="51" font-family="Inter, Arial, sans-serif" font-size="13" fill="#536b70">trials x features</text>
-    </g>
-    <g transform="translate(24 181)">
-      <circle cx="8" cy="0" r="5" fill="#197b75"/>
-      <text x="22" y="5" font-family="Inter, Arial, sans-serif" font-size="13" fill="#536b70">classifiers, MCCA, validation</text>
-    </g>
-  </g>
-
-  <g transform="translate(73 430)" font-family="Inter, Arial, sans-serif" font-size="15" fill="#3b555a">
-    <text x="0" y="0">log-variance | filter-bank CSP | tangent space | Riemannian geometry | ATM | Hjorth | MVAR | MSVAR</text>
+  <desc id="desc">Feature Extraction Toolkit for Brain-Computer Interfaces</desc>
+  
+    <defs>
+      <linearGradient id="accentGrad" x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0" stop-color="#0F766E"/>
+        <stop offset="1" stop-color="#16A34A"/>
+      </linearGradient>
+      <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0F172A" flood-opacity="0.08"/>
+      </filter>
+      <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+        <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#E2E8F0" stroke-width="1" opacity="0.55"/>
+      </pattern>
+    </defs>
+  <rect width="1200" height="420" fill="#F8FAFC"/>
+  <rect width="1200" height="420" fill="url(#grid)" opacity="0.36"/>
+  <circle cx="1020" cy="88" r="150" fill="#0F766E" opacity="0.045"/>
+  <circle cx="114" cy="350" r="120" fill="#16A34A" opacity="0.045"/>
+  <g font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <rect x="48" y="30" width="1104" height="360" rx="24" fill="#FFFFFF" opacity="0.96" filter="url(#softShadow)"/>
+    <rect x="48" y="30" width="1104" height="360" rx="24" fill="none" stroke="#E2E8F0" stroke-width="1.2"/>
+    <text x="86" y="82" fill="#0F172A" font-size="42" font-weight="850" letter-spacing="0">BCIFeatR</text>
+    <text x="88" y="112" fill="#475569" font-size="17" font-weight="550" letter-spacing="0">Feature Extraction Toolkit for Brain-Computer Interfaces</text>
+    <rect x="954" y="56" width="156" height="34" rx="17" fill="#F8FAFC" stroke="#0F766E" stroke-width="1.4"/>
+    <text x="1032" y="78" fill="#0F766E" font-size="13" font-weight="800" text-anchor="middle" letter-spacing="0">R package</text>
+    <g transform="translate(0 16)"><path d="M 110.0 145.0 L 112.4 147.9 L 114.7 150.6 L 117.1 152.8 L 119.4 154.6 L 121.8 155.7 L 124.2 156.0 L 126.5 155.8 L 128.9 154.9 L 131.2 153.5 L 133.6 151.9 L 136.0 150.0 L 138.3 148.2 L 140.7 146.5 L 143.0 145.0 L 145.4 143.8 L 147.8 142.8 L 150.1 142.0 L 152.5 141.5 L 154.8 141.0 L 157.2 140.6 L 159.6 140.1 L 161.9 139.6 L 164.3 139.0 L 166.6 138.4 L 169.0 137.9 L 171.3 137.5 L 173.7 137.4 L 176.1 137.6 L 178.4 138.3 L 180.8 139.5 L 183.1 141.1 L 185.5 143.2 L 187.9 145.6 L 190.2 148.2 L 192.6 150.7 L 194.9 153.0 L 197.3 155.0 L 199.7 156.4 L 202.0 157.1 L 204.4 157.0 L 206.7 156.2 L 209.1 154.7 L 211.5 152.7 L 213.8 150.2 L 216.2 147.6 L 218.5 144.9 L 220.9 142.4 L 223.3 140.3 L 225.6 138.6 L 228.0 137.5 L 230.3 136.8 L 232.7 136.7 L 235.1 136.9 L 237.4 137.5 L 239.8 138.2 L 242.1 139.1 L 244.5 139.9 L 246.9 140.6 L 249.2 141.3 L 251.6 141.9 L 253.9 142.4 L 256.3 143.0 L 258.7 143.8 L 261.0 144.7 L 263.4 145.8 L 265.7 147.2 L 268.1 148.7 L 270.4 150.4 L 272.8 152.0 L 275.2 153.5 L 277.5 154.7 L 279.9 155.4 L 282.2 155.6 L 284.6 155.1 L 287.0 154.0 L 289.3 152.2 L 291.7 149.9 L 294.0 147.2 L 296.4 144.4 L 298.8 141.5 L 301.1 138.8 L 303.5 136.6 L 305.8 134.9 L 308.2 133.9 L 310.6 133.6 L 312.9 134.0 L 315.3 135.0 L 317.6 136.5 L 320.0 138.3" fill="none" stroke="#0F766E" stroke-width="2.4" opacity="0.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M 110.0 188.2 L 112.4 189.5 L 114.7 190.0 L 117.1 189.8 L 119.4 188.8 L 121.8 187.3 L 124.2 185.3 L 126.5 183.0 L 128.9 180.6 L 131.2 178.2 L 133.6 176.2 L 136.0 174.4 L 138.3 173.1 L 140.7 172.1 L 143.0 171.6 L 145.4 171.4 L 147.8 171.5 L 150.1 171.7 L 152.5 171.9 L 154.8 172.2 L 157.2 172.4 L 159.6 172.6 L 161.9 172.7 L 164.3 173.0 L 166.6 173.4 L 169.0 174.0 L 171.3 174.9 L 173.7 176.1 L 176.1 177.7 L 178.4 179.5 L 180.8 181.5 L 183.1 183.6 L 185.5 185.7 L 187.9 187.4 L 190.2 188.7 L 192.6 189.4 L 194.9 189.5 L 197.3 188.8 L 199.7 187.5 L 202.0 185.5 L 204.4 183.0 L 206.7 180.2 L 209.1 177.3 L 211.5 174.5 L 213.8 172.0 L 216.2 170.0 L 218.5 168.6 L 220.9 167.8 L 223.3 167.6 L 225.6 168.1 L 228.0 169.0 L 230.3 170.3 L 232.7 171.8 L 235.1 173.4 L 237.4 174.9 L 239.8 176.2 L 242.1 177.4 L 244.5 178.4 L 246.9 179.2 L 249.2 179.8 L 251.6 180.4 L 253.9 181.1 L 256.3 181.8 L 258.7 182.6 L 261.0 183.5 L 263.4 184.4 L 265.7 185.3 L 268.1 186.1 L 270.4 186.5 L 272.8 186.6 L 275.2 186.3 L 277.5 185.3 L 279.9 183.9 L 282.2 181.9 L 284.6 179.5 L 287.0 176.9 L 289.3 174.2 L 291.7 171.6 L 294.0 169.3 L 296.4 167.5 L 298.8 166.3 L 301.1 165.9 L 303.5 166.2 L 305.8 167.3 L 308.2 168.9 L 310.6 171.1 L 312.9 173.5 L 315.3 176.0 L 317.6 178.4 L 320.0 180.6" fill="none" stroke="#64748B" stroke-width="2.4" opacity="0.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M 110.0 222.0 L 112.4 220.5 L 114.7 218.4 L 117.1 215.9 L 119.4 213.1 L 121.8 210.4 L 124.2 207.8 L 126.5 205.6 L 128.9 203.9 L 131.2 202.7 L 133.6 202.1 L 136.0 202.1 L 138.3 202.4 L 140.7 203.2 L 143.0 204.1 L 145.4 205.1 L 147.8 206.2 L 150.1 207.1 L 152.5 208.0 L 154.8 208.7 L 157.2 209.4 L 159.6 210.0 L 161.9 210.7 L 164.3 211.6 L 166.6 212.6 L 169.0 213.8 L 171.3 215.1 L 173.7 216.6 L 176.1 218.0 L 178.4 219.3 L 180.8 220.4 L 183.1 221.0 L 185.5 221.1 L 187.9 220.6 L 190.2 219.4 L 192.6 217.7 L 194.9 215.4 L 197.3 212.7 L 199.7 209.9 L 202.0 207.0 L 204.4 204.4 L 206.7 202.2 L 209.1 200.5 L 211.5 199.6 L 213.8 199.3 L 216.2 199.8 L 218.5 200.9 L 220.9 202.5 L 223.3 204.5 L 225.6 206.7 L 228.0 208.8 L 230.3 210.9 L 232.7 212.6 L 235.1 214.1 L 237.4 215.1 L 239.8 215.9 L 242.1 216.3 L 244.5 216.5 L 246.9 216.6 L 249.2 216.7 L 251.6 216.8 L 253.9 216.9 L 256.3 217.1 L 258.7 217.2 L 261.0 217.2 L 263.4 217.1 L 265.7 216.7 L 268.1 216.0 L 270.4 214.8 L 272.8 213.3 L 275.2 211.4 L 277.5 209.2 L 279.9 206.9 L 282.2 204.6 L 284.6 202.5 L 287.0 200.8 L 289.3 199.6 L 291.7 199.1 L 294.0 199.3 L 296.4 200.3 L 298.8 201.9 L 301.1 204.1 L 303.5 206.7 L 305.8 209.5 L 308.2 212.3 L 310.6 214.9 L 312.9 217.1 L 315.3 218.8 L 317.6 220.0 L 320.0 220.5" fill="none" stroke="#0F766E" stroke-width="2.4" opacity="0.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M 110.0 245.7 L 112.4 242.8 L 114.7 240.0 L 117.1 237.5 L 119.4 235.5 L 121.8 234.0 L 124.2 233.3 L 126.5 233.2 L 128.9 233.8 L 131.2 234.8 L 133.6 236.3 L 136.0 237.9 L 138.3 239.7 L 140.7 241.4 L 143.0 242.9 L 145.4 244.2 L 147.8 245.3 L 150.1 246.1 L 152.5 246.8 L 154.8 247.3 L 157.2 247.8 L 159.6 248.4 L 161.9 249.0 L 164.3 249.6 L 166.6 250.3 L 169.0 251.0 L 171.3 251.6 L 173.7 251.9 L 176.1 251.9 L 178.4 251.5 L 180.8 250.6 L 183.1 249.1 L 185.5 247.2 L 187.9 244.9 L 190.2 242.4 L 192.6 239.8 L 194.9 237.2 L 197.3 235.0 L 199.7 233.3 L 202.0 232.2 L 204.4 231.9 L 206.7 232.2 L 209.1 233.4 L 211.5 235.1 L 213.8 237.3 L 216.2 239.9 L 218.5 242.5 L 220.9 245.0 L 223.3 247.3 L 225.6 249.2 L 228.0 250.6 L 230.3 251.5 L 232.7 251.9 L 235.1 251.9 L 237.4 251.6 L 239.8 251.0 L 242.1 250.3 L 244.5 249.6 L 246.9 248.9 L 249.2 248.3 L 251.6 247.8 L 253.9 247.3 L 256.3 246.8 L 258.7 246.1 L 261.0 245.3 L 263.4 244.2 L 265.7 242.9 L 268.1 241.3 L 270.4 239.6 L 272.8 237.9 L 275.2 236.2 L 277.5 234.8 L 279.9 233.7 L 282.2 233.2 L 284.6 233.3 L 287.0 234.1 L 289.3 235.5 L 291.7 237.6 L 294.0 240.1 L 296.4 242.9 L 298.8 245.8 L 301.1 248.6 L 303.5 251.1 L 305.8 253.1 L 308.2 254.5 L 310.6 255.2 L 312.9 255.1 L 315.3 254.5 L 317.6 253.3 L 320.0 251.6" fill="none" stroke="#64748B" stroke-width="2.4" opacity="0.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M 110.0 267.8 L 112.4 266.2 L 114.7 265.3 L 117.1 265.1 L 119.4 265.7 L 121.8 266.9 L 124.2 268.6 L 126.5 270.7 L 128.9 273.0 L 131.2 275.3 L 133.6 277.5 L 136.0 279.4 L 138.3 280.9 L 140.7 282.0 L 143.0 282.7 L 145.4 283.1 L 147.8 283.2 L 150.1 283.2 L 152.5 283.1 L 154.8 282.9 L 157.2 282.8 L 159.6 282.7 L 161.9 282.6 L 164.3 282.5 L 166.6 282.3 L 169.0 281.8 L 171.3 281.1 L 173.7 280.0 L 176.1 278.6 L 178.4 276.8 L 180.8 274.7 L 183.1 272.6 L 185.5 270.4 L 187.9 268.5 L 190.2 266.8 L 192.6 265.8 L 194.9 265.3 L 197.3 265.6 L 199.7 266.6 L 202.0 268.3 L 204.4 270.5 L 206.7 273.1 L 209.1 276.0 L 211.5 278.8 L 213.8 281.5 L 216.2 283.7 L 218.5 285.5 L 220.9 286.6 L 223.3 287.1 L 225.6 287.0 L 228.0 286.3 L 230.3 285.3 L 232.7 284.0 L 235.1 282.5 L 237.4 281.1 L 239.8 279.7 L 242.1 278.5 L 244.5 277.5 L 246.9 276.7 L 249.2 276.0 L 251.6 275.3 L 253.9 274.7 L 256.3 273.9 L 258.7 273.1 L 261.0 272.1 L 263.4 271.1 L 265.7 270.1 L 268.1 269.1 L 270.4 268.4 L 272.8 268.1 L 275.2 268.2 L 277.5 268.8 L 279.9 270.0 L 282.2 271.7 L 284.6 273.9 L 287.0 276.5 L 289.3 279.2 L 291.7 282.0 L 294.0 284.5 L 296.4 286.6 L 298.8 288.1 L 301.1 288.9 L 303.5 289.0 L 305.8 288.4 L 308.2 287.0 L 310.6 285.2 L 312.9 282.9 L 315.3 280.5 L 317.6 278.0 L 320.0 275.7" fill="none" stroke="#0F766E" stroke-width="2.4" opacity="0.9" stroke-linecap="round" stroke-linejoin="round"/><line x1="340" y1="210" x2="425" y2="168" stroke="#0F766E" stroke-width="3" stroke-linecap="round"/><line x1="340" y1="210" x2="425" y2="210" stroke="#0F766E" stroke-width="3" stroke-linecap="round"/><line x1="340" y1="210" x2="425" y2="252" stroke="#0F766E" stroke-width="3" stroke-linecap="round"/><rect x="425" y="132" width="164" height="34" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/><circle cx="445" cy="149" r="6" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.75"/><text x="461" y="154" fill="#334155" font-size="13" font-weight="700" text-anchor="start" letter-spacing="0" >Filter bank</text><rect x="425" y="174" width="164" height="34" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/><circle cx="445" cy="191" r="6" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.75"/><text x="461" y="196" fill="#334155" font-size="13" font-weight="700" text-anchor="start" letter-spacing="0" >CSP filters</text><rect x="425" y="216" width="164" height="34" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/><circle cx="445" cy="233" r="6" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.75"/><text x="461" y="238" fill="#334155" font-size="13" font-weight="700" text-anchor="start" letter-spacing="0" >Tangent map</text><rect x="425" y="258" width="164" height="34" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/><circle cx="445" cy="275" r="6" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.75"/><text x="461" y="280" fill="#334155" font-size="13" font-weight="700" text-anchor="start" letter-spacing="0" >Band power</text><path d="M 592 149 C 660 145 690 178 746 190" fill="none" stroke="#16A34A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M 592 191 C 660 193 690 197 746 205" fill="none" stroke="#16A34A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M 592 233 C 660 232 690 222 746 220" fill="none" stroke="#16A34A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M 592 275 C 660 266 690 244 746 236" fill="none" stroke="#16A34A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><rect x="770" y="132" width="218" height="174" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2"/><rect x="780" y="142" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.7750567923770625"/><rect x="802" y="142" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.5638080022164635"/><rect x="824" y="142" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.31687931379031975"/><rect x="846" y="142" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.26129582446763694"/><rect x="868" y="142" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.44816073799529543"/><rect x="890" y="142" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.705671314647667"/><rect x="912" y="142" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.7970735178214301"/><rect x="934" y="142" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.638332583441483"/><rect x="956" y="142" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.37539419450542333"/><rect x="780" y="164" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.31687931379031975"/><rect x="802" y="164" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.44816073799529543"/><rect x="824" y="164" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.7970735178214301"/><rect x="846" y="164" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.37539419450542333"/><rect x="868" y="164" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.37744244754988043"/><rect x="890" y="164" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.7974170228160894"/><rect x="912" y="164" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.44582658791710705"/><rect x="934" y="164" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.3184785071377891"/><rect x="956" y="164" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.7760599439500977"/><rect x="780" y="186" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.44816073799529543"/><rect x="802" y="186" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.638332583441483"/><rect x="824" y="186" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.37744244754988043"/><rect x="846" y="186" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.7038291560432072"/><rect x="868" y="186" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.3184785071377891"/><rect x="890" y="186" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.7550803005974154"/><rect x="912" y="186" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.27596595044817845"/><rect x="934" y="186" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.7880033803112384"/><rect x="956" y="186" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.253291303374463"/><rect x="780" y="208" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.7970735178214301"/><rect x="802" y="208" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.37744244754988043"/><rect x="824" y="208" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.44582658791710705"/><rect x="846" y="208" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.7760599439500977"/><rect x="868" y="208" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.27596595044817845"/><rect x="890" y="208" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.5994990917846641"/><rect x="912" y="208" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.676642337341465"/><rect x="934" y="208" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.25226081530314315"/><rect x="956" y="208" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.729906119131821"/><rect x="780" y="230" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.37539419450542333"/><rect x="802" y="230" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.7038291560432072"/><rect x="824" y="230" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.7760599439500977"/><rect x="846" y="230" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.48860326872311244"/><rect x="868" y="230" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.253291303374463"/><rect x="890" y="230" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.4072497658885585"/><rect x="912" y="230" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.729906119131821"/><rect x="934" y="230" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.7589984692468826"/><rect x="956" y="230" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.4528469152314196"/><rect x="780" y="252" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.37744244754988043"/><rect x="802" y="252" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.3184785071377891"/><rect x="824" y="252" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.27596595044817845"/><rect x="846" y="252" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.253291303374463"/><rect x="868" y="252" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.25226081530314315"/><rect x="890" y="252" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.2729565743232007"/><rect x="912" y="252" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.31372996813599163"/><rect x="934" y="252" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.37133301156580556"/><rect x="956" y="252" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.4411770791968904"/><rect x="780" y="274" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.7974170228160894"/><rect x="802" y="274" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.7550803005974154"/><rect x="824" y="274" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.5994990917846641"/><rect x="846" y="274" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.4072497658885585"/><rect x="868" y="274" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.2729565743232007"/><rect x="890" y="274" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.26271802049114523"/><rect x="912" y="274" width="18" height="18" rx="3" fill="#0F766E" stroke="none" stroke-width="1" opacity="0.38157347442609924"/><rect x="934" y="274" width="18" height="18" rx="3" fill="#16A34A" stroke="none" stroke-width="1" opacity="0.5710228175832719"/><rect x="956" y="274" width="18" height="18" rx="3" fill="#CBD5E1" stroke="none" stroke-width="1" opacity="0.7378199374284196"/><text x="825" y="332" fill="#475569" font-size="14" font-weight="700" text-anchor="middle" letter-spacing="0" >feature matrix</text></g>
+    <line x1="86" y1="364" x2="1114" y2="364" stroke="#E2E8F0" stroke-width="1"/>
+    <circle cx="92" cy="379" r="4" fill="#0F766E"/>
+    <text x="108" y="384" fill="#64748B" font-size="13" font-weight="650" letter-spacing="0">Cross-session EEG / BCI methods toolkit</text>
+    <text x="1114" y="384" fill="#94A3B8" font-size="12" font-weight="600" text-anchor="end" letter-spacing="0">Yiming Shen</text>
   </g>
 </svg>
