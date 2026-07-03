@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+type: software
+title: "BCIFeatR"
+abstract: "Leakage-safe feature extraction for motor-imagery EEG/BCI decoding (CSP/FBCSP, Riemannian tangent-space, bandpower, Hjorth, MVAR/MSVAR, ATM) with a unified train/test contract."
+authors:
+  - family-names: "Shen"
+    given-names: "Yiming"
+    email: "yiming.shen001@umb.edu"
+    orcid: "https://orcid.org/0009-0004-6282-3755"
+version: "0.3.4"
+repository-code: "https://github.com/Yiming-S/BCIFeatR"
+url: "https://github.com/Yiming-S/BCIFeatR"
+license: MIT
+keywords:
+  - EEG
+  - brain-computer interface
+  - motor imagery
+  - feature extraction
+  - CSP
+  - Riemannian geometry
+  - R
